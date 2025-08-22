@@ -1,3 +1,18 @@
+
+# TP0: Intrucciones de como ejecutar cada ejercicio
+
+## Ejecicio 1
+
+En primer lugar le damos los permisos de ejecucion al generar-compose.sh con
+
+chmod +x generar-compose.sh
+
+Y luego simplemente corremos 
+
+./generar-compose.sh nombre_archivo_salida.yaml n_clientes
+
+
+
 # TP0: Docker + Comunicaciones + Concurrencia
 
 En el presente repositorio se provee un esqueleto básico de cliente/servidor, en donde todas las dependencias del mismo se encuentran encapsuladas en containers. Los alumnos deberán resolver una guía de ejercicios incrementales, teniendo en cuenta las condiciones de entrega descritas al final de este enunciado.
