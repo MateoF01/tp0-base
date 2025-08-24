@@ -41,6 +41,16 @@ Una vez realizada la prueba manual, se configuró el validar-echo-server.sh para
 chmod +x validar-echo-server.sh
 ./validar-echo-server.sh
 
+## Ejercicio 4
+
+En este ejercicio basicamente plantean la necesidad de termianr la aplicacion de forma graceful al recibir la signal SIGTERM.
+
+El flag -t en docker compose down basicamente permite indicar la cantidad de segundos que le damos al sistema para terminar, antes de forzar el cierre.
+
+En la nueva implementación, se agregó la posibilidad de hacer un manejo de la señal SIGTERM para que al recibirla, los sockets se cierren correctamente antes de apagar el servidor.
+
+En el lado del cliente, por la infraestructura de go, se debe crear un canal del tipo os.Signal para recibir las señales del sistema operativo.
+Además ahora mismo, se cierra la conexion al final del loop, pero puede que el cliente esté en medio de una iteracion cuando llegue SIGTERM, enonces se agregó el metodo close() al cliente
 
 # TP0: Docker + Comunicaciones + Concurrencia
 

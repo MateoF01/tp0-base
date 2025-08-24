@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/signal"
+    "syscall"
 	"strings"
 	"time"
 
@@ -111,5 +113,19 @@ func main() {
 	}
 
 	client := common.NewClient(clientConfig)
+
+
+	//Inicializo canal para manejar las señales
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
+	
+	go func() {
+		<-sigChan
+		log.Infof("action: shutdown | result: in_progress | client_id: %v", clientConfig.ID)
+		client.Close()
+		log.Infof("action: shutdown | result: success | client_id: %v", clientConfig.ID)
+		os.Exit(0)
+	}()
+
 	client.StartClientLoop()
 }
