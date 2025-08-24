@@ -14,12 +14,32 @@ Y luego simplemente corremos
 ./generar-compose.sh nombre_archivo_salida.yaml n_clientes
 
 
-
 ## Ejecicio 2
 
 En este ejercicio se configuró la sección de volumes en docker-compose para generar un vínculo entre los archivos de configuración del host (la computadora local) y el sistema de archivos de los contenedores.
 De esta forma, cualquier cambio realizado en los archivos de configuración locales (server/config.ini y client/config.yaml) se refleja automáticamente dentro de los contenedores, sin necesidad de reconstruir las imágenes.
 Además, se modificó el script generador-compose.py para eliminar las variables de entorno que fijaban el nivel de logging, de modo que ahora estos valores se tomen directamente de los archivos de configuración montados.
+
+# Ejercicio 3 
+
+En este ejercicio. Hay que utilizar el comando netcat para inteactuar con el echo server que está levantado dentro de la network que se definió en el yaml. 
+
+No puedo comunicarme desde mi host, ya que no puedo exponer puertos. Así que debo crear otro contenedor en la misma red para inteactuar con el server. La red en cuestion es tp0_testing_net y lo podemos ver con
+
+docker network ls | grep tp0
+
+Para realizar la prueba manualmente, primero levanto el servidor con make docker-compose-up y luego creo un contenedor auxiliar para realizar el request. Para esto utilizo una imagen pequeña que contenga netcat (busybox:1.36.1-uclibc)
+
+docker run -it --rm --network=tp0_testing_net busybox:1.36.1-uclibc sh
+
+Se abrirá una shell del contenedor, y realizando el siguiente comando, podré ver que el mensaje regresa. En el comando se especifica la ip y el puerto donde corre el servidor. Ambos datos estan seteados en los archivos de configuración.
+
+echo -e "hola\n" | nc server 12345
+
+Una vez realizada la prueba manual, se configuró el validar-echo-server.sh para poder probar la misma lógica de funcionamiento simplemente corriendo el script
+
+chmod +x validar-echo-server.sh
+./validar-echo-server.sh
 
 
 # TP0: Docker + Comunicaciones + Concurrencia
