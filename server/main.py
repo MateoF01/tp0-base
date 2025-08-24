@@ -52,7 +52,7 @@ def main():
     server = Server(port, listen_backlog)
 
     #Seteo el comportamiento esperado para la señal SIGTERM
-    def handle_sigterm():
+    def handle_sigterm(signum, frame):
         logging.info("action: shutdown | result: in_progress | resource: main")
         server.close()
         logging.info("action: shutdown | result: success | resource: main")
