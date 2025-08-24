@@ -3,7 +3,9 @@
 
 ## Ejecicio 1
 
-En primer lugar le damos los permisos de ejecucion al generar-compose.sh con
+En este ejercicio se creo un scrpt en python que genera el yaml con una cantidad de clientes dinámica.  
+
+Para probar en primer lugar le damos los permisos de ejecucion al generar-compose.sh con
 
 chmod +x generar-compose.sh
 
