@@ -24,8 +24,13 @@ class Server:
         # DONE: Modify this program to handle signal to graceful shutdown
         # the server
         while self._running:
-            client_sock = self.__accept_new_connection()
-            self.__handle_client_connection(client_sock)
+            try:
+                client_sock = self.__accept_new_connection()
+                self.__handle_client_connection(client_sock)
+            except OSError as e:
+                if not self._running:  # si ya estoy apagando, cortar sin loguear error
+                    break
+                raise
 
     def close(self):
         logging.info("action: shutdown | result: in_progress | resource: server")
