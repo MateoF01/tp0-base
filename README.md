@@ -3,7 +3,9 @@
 
 ## Ejecicio 1
 
-En primer lugar le damos los permisos de ejecucion al generar-compose.sh con
+En este ejercicio se creo un scrpt en python que genera el yaml con una cantidad de clientes dinámica.  
+
+Para probar en primer lugar le damos los permisos de ejecucion al generar-compose.sh con
 
 chmod +x generar-compose.sh
 
@@ -11,12 +13,13 @@ Y luego simplemente corremos
 
 ./generar-compose.sh nombre_archivo_salida.yaml n_clientes
 
+
+
 ## Ejecicio 2
 
-Se ajustó el generador-compose.py para que agregue volumenes
-
-
-
+En este ejercicio se configuró la sección de volumes en docker-compose para generar un vínculo entre los archivos de configuración del host (la computadora local) y el sistema de archivos de los contenedores.
+De esta forma, cualquier cambio realizado en los archivos de configuración locales (server/config.ini y client/config.yaml) se refleja automáticamente dentro de los contenedores, sin necesidad de reconstruir las imágenes.
+Además, se modificó el script generador-compose.py para eliminar las variables de entorno que fijaban el nivel de logging, de modo que ahora estos valores se tomen directamente de los archivos de configuración montados.
 
 
 # TP0: Docker + Comunicaciones + Concurrencia
