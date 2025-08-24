@@ -16,7 +16,7 @@ for i in range(1, int(n_clientes) + 1):
       - CLI_ID={i}
       - CLI_LOG_LEVEL=DEBUG
     volumes:
-      - ./client/config.yaml:/config/config.yaml:ro
+      - ./server/config:/config:ro
     networks:
       - testing_net
     depends_on:
@@ -36,7 +36,7 @@ services:
       - PYTHONUNBUFFERED=1
       - LOGGING_LEVEL=DEBUG
     volumes:
-      - ./server/config.ini:/config/config.ini:ro
+      - ./client/config:/config:ro
     networks:
       - testing_net
 
