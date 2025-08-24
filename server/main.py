@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from configparser import ConfigParser
+import signal
 from common.server import Server
 import logging
 import os
@@ -49,6 +50,15 @@ def main():
 
     # Initialize server and start server loop
     server = Server(port, listen_backlog)
+
+    #Seteo el comportamiento esperado para la señal SIGTERM
+    def handle_sigterm():
+        logging.info("action: shutdown | result: in_progress | resource: main")
+        server.close()
+        logging.info("action: shutdown | result: success | resource: main")
+
+    signal.signal(signal.SIGTERM, handle_sigterm)
+
     server.run()
 
 def initialize_log(logging_level):
