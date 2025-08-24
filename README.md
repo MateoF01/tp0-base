@@ -11,6 +11,12 @@ Y luego simplemente corremos
 
 ./generar-compose.sh nombre_archivo_salida.yaml n_clientes
 
+## Ejecicio 2
+
+Se ajustó el generador-compose.py para que agregue volumenes
+
+
+
 
 
 # TP0: Docker + Comunicaciones + Concurrencia
