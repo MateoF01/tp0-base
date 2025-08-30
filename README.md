@@ -63,6 +63,7 @@ En primer lugar modifqué el generador-compose.py para poder setar las variables
 
 El protocolo que planteo es el siguiente. Debo comunicar los datos de cada apuesta que se realiza en la agencia, hacia la loteria nacional. Para esto debo informar:
 
+- "ID AGENCIA"
 - "NOMBRE"
 - "APELLIDO"
 - "DOCUMENTO"
@@ -73,7 +74,7 @@ En pos de mantener simple el protocolo, propongo enviar los mensajes con el sigu
 
 Por ejemplo, aquí se indican que deben leerse 39 bytes:
 
-[00000039]30904465|Santiago|Lorca|1999-03-17|7574
+[00000039]3|Santiago|Lorca|30904465|1999-03-17|7574
 
 De esta forma podemos evitar los fenómenos de short read y short write, porque indicamos exactamente el tamaño del mensaje. 
 

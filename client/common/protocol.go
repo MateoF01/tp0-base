@@ -35,7 +35,7 @@ func ReceiveBet(conn net.Conn) (Bet, error) {
 }
 
 func SendAck(conn net.Conn, bet Bet) error {
-    msg := fmt.Sprintf("ACK|%s|%s", bet.Documento, bet.Numero)
+    msg := fmt.Sprintf("ACK|%s|%s", bet.Document, bet.Number)
     data := []byte(msg)
     length := uint32(len(data))
 

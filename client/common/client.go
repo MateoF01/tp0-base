@@ -86,7 +86,7 @@ func (c *Client) StartClientLoop() {
 		err := SendBet(c.conn, bet)
 		if err != nil {
 			log.Errorf("action: send_bet | result: fail | dni: %s | error: %v",
-				bet.Documento, err,
+				bet.Document, err,
 			)
 			c.conn.Close()
 			return
@@ -98,14 +98,14 @@ func (c *Client) StartClientLoop() {
 
 		if err != nil {
 			log.Errorf("action: receive_ack | result: fail | dni: %s | error: %v",
-				bet.Documento, err,
+				bet.Document, err,
 			)
 			return
 		}
 
 		// Loguear el éxito
 		log.Infof("action: apuesta_enviada | result: success | dni: %s | numero: %s | ack: %s",
-			bet.Documento, bet.Numero, ack,
+			bet.Document, bet.Number, ack,
 		)
 
 
