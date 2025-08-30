@@ -104,8 +104,8 @@ func (c *Client) StartClientLoop() {
 		}
 
 		// Loguear el éxito
-		log.Infof("action: apuesta_enviada | result: success | dni: %s | numero: %s | ack: %s",
-			bet.Document, bet.Number, ack,
+		log.Infof("action: apuesta_enviada | result: success | dni: %s | numero: %s",
+			bet.Document, bet.Number,
 		)
 
 
