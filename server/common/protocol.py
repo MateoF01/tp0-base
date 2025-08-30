@@ -23,7 +23,7 @@ def recv_bet(sock: socket.socket):
     return deserialize_bet(data)
 
 def send_ack(sock, bet):
-    payload = f"ACK|{bet.document}|{bet.number}".encode("utf-8")
+    payload = f"ACK".encode("utf-8")
     length = struct.pack(">I", len(payload))
     sock.sendall(length + payload)
 
