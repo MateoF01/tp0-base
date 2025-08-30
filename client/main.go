@@ -40,6 +40,14 @@ func InitConfig() (*viper.Viper, error) {
 	v.BindEnv("loop", "amount")
 	v.BindEnv("log", "level")
 
+	//env ejercio 5
+	v.BindEnv("nombre")
+	v.BindEnv("apellido")
+	v.BindEnv("documento")
+	v.BindEnv("nacimiento")
+	v.BindEnv("numero")
+
+
 	// Try to read configuration from config file. If config file
 	// does not exists then ReadInConfig will fail but configuration
 	// can be loaded from the environment variables so we shouldn't
@@ -110,6 +118,12 @@ func main() {
 		ID:            v.GetString("id"),
 		LoopAmount:    v.GetInt("loop.amount"),
 		LoopPeriod:    v.GetDuration("loop.period"),
+
+		Nombre:        v.GetString("nombre"),
+		Apellido:      v.GetString("apellido"),
+		Documento:     v.GetString("documento"),
+		Nacimiento:    v.GetString("nacimiento"),
+		Numero:        v.GetString("numero"),
 	}
 
 	client := common.NewClient(clientConfig)

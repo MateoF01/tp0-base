@@ -13,6 +13,10 @@ Y luego simplemente corremos
 
 ./generar-compose.sh nombre_archivo_salida.yaml n_clientes
 
+ej: 
+
+./generar-compose.sh docker-compose-dev.yaml 5
+
 
 ## Ejecicio 2
 
@@ -20,7 +24,7 @@ En este ejercicio se configuró la sección de volumes en docker-compose para ge
 De esta forma, cualquier cambio realizado en los archivos de configuración locales (server/config.ini y client/config.yaml) se refleja automáticamente dentro de los contenedores, sin necesidad de reconstruir las imágenes.
 Además, se modificó el script generador-compose.py para eliminar las variables de entorno que fijaban el nivel de logging, de modo que ahora estos valores se tomen directamente de los archivos de configuración montados.
 
-# Ejercicio 3 
+## Ejercicio 3 
 
 En este ejercicio. Hay que utilizar el comando netcat para inteactuar con el echo server que está levantado dentro de la network que se definió en el yaml. 
 
@@ -52,6 +56,12 @@ Ahora mismo el servidor corre en un loop infinito, al cual le agregué la flag d
 
 En el lado del cliente, por la infraestructura de go, se debe crear un canal del tipo os.Signal para recibir las señales del sistema operativo.
 Además ahora mismo, se cierra la conexion al final del loop, pero puede que el cliente esté en medio de una iteracion cuando llegue SIGTERM, enonces se agregó el metodo close() al cliente
+
+## Ejercicio 5
+
+En primer lugar modifqué el generador-compose.py para poder setar las variables de enorno que me pide, para cada cliete, generando así un usuario ficticio. 
+
+
 
 # TP0: Docker + Comunicaciones + Concurrencia
 

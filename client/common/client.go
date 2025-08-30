@@ -17,6 +17,13 @@ type ClientConfig struct {
 	ServerAddress string
 	LoopAmount    int
 	LoopPeriod    time.Duration
+
+	//ej5
+	Nombre    string
+    Apellido  string
+    Documento string
+    Nacimiento string
+    Numero    string
 }
 
 // Client Entity that encapsulates how
@@ -64,6 +71,19 @@ func (c *Client) StartClientLoop() {
 	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
 		// Create the connection the server in every loop iteration. Send an
 		c.createClientSocket()
+
+		//LOG DE CREACION DEL CLIENTE
+
+		msg := fmt.Sprintf("%s|%s|%s|%s|%s",
+    		c.config.Documento,
+    		c.config.Nombre,
+    		c.config.Apellido,
+    		c.config.Nacimiento,
+    		c.config.Numero,
+		)
+		
+		fmt.Fprintf(c.conn, msg+"\n")
+
 
 		// TODO: Modify the send to avoid short-write
 		fmt.Fprintf(
