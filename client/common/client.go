@@ -1,11 +1,8 @@
 package common
 
 import (
-	"bufio"
-	"fmt"
 	"net"
 	"time"
-
 	"github.com/op/go-logging"
 )
 
@@ -70,43 +67,46 @@ func (c *Client) StartClientLoop() {
 	// Messages if the message amount threshold has not been surpassed
 	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
 		// Create the connection the server in every loop iteration. Send an
-		c.createClientSocket()
-
-		//LOG DE CREACION DEL CLIENTE
-
-		msg := fmt.Sprintf("%s|%s|%s|%s|%s",
-    		c.config.Documento,
-    		c.config.Nombre,
-    		c.config.Apellido,
-    		c.config.Nacimiento,
-    		c.config.Numero,
-		)
 		
-		fmt.Fprintf(c.conn, msg+"\n")
+		if err := c.createClientSocket(); err != nil {
+			return
+		}
 
+		//Construyo la apuesta tomando los datos de config
+		bet := Bet{
+			Documento:  c.config.Documento,
+			Nombre:     c.config.Nombre,
+			Apellido:   c.config.Apellido,
+			Nacimiento: c.config.Nacimiento,
+			Numero:     c.config.Numero,
+		}
 
-		// TODO: Modify the send to avoid short-write
-		fmt.Fprintf(
-			c.conn,
-			"[CLIENT %v] Message N°%v\n",
-			c.config.ID,
-			msgID,
-		)
-		msg, err := bufio.NewReader(c.conn).ReadString('\n')
-		c.conn.Close()
+		// Enviar la apuesta
+		err := SendBet(c.conn, bet)
+		if err != nil {
+			log.Errorf("action: send_bet | result: fail | dni: %s | error: %v",
+				bet.Documento, err,
+			)
+			c.conn.Close()
+			return
+		}
+
+		// Esperar el ACK
+		ack, err := ReceiveAck(c.conn)
+		c.conn.Close() // cerramos la conexión después de recibir el ACK
 
 		if err != nil {
-			log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
-				c.config.ID,
-				err,
+			log.Errorf("action: receive_ack | result: fail | dni: %s | error: %v",
+				bet.Documento, err,
 			)
 			return
 		}
 
-		log.Infof("action: receive_message | result: success | client_id: %v | msg: %v",
-			c.config.ID,
-			msg,
+		// Loguear el éxito
+		log.Infof("action: apuesta_enviada | result: success | dni: %s | numero: %s | ack: %s",
+			bet.Documento, bet.Numero, ack,
 		)
+
 
 		// Wait a time between sending one message and the next one
 		time.Sleep(c.config.LoopPeriod)

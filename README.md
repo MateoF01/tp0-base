@@ -59,8 +59,25 @@ Además ahora mismo, se cierra la conexion al final del loop, pero puede que el 
 
 ## Ejercicio 5
 
-En primer lugar modifqué el generador-compose.py para poder setar las variables de enorno que me pide, para cada cliete, generando así un usuario ficticio. 
+En primer lugar modifqué el generador-compose.py para poder setar las variables de enorno que me pide, para cada cliete, generando así una apuesta ficticia. 
 
+El protocolo que planteo es el siguiente. Debo comunicar los datos de cada apuesta que se realiza en la agencia, hacia la loteria nacional. Para esto debo informar:
+
+- "NOMBRE"
+- "APELLIDO"
+- "DOCUMENTO"
+- "NACIMIENTO"
+- "NUMERO"
+
+En pos de mantener simple el protocolo, propongo enviar los mensajes con el siguiente formato: Un encavezado de 4 bytes (uint32) indicando la logitud del mensaje y un payload que contenga un string con todos los datos de la apuesta divididos por una |
+
+Por ejemplo, aquí se indican que deben leerse 39 bytes:
+
+[00000039]30904465|Santiago|Lorca|1999-03-17|7574
+
+De esta forma podemos evitar los fenómenos de short read y short write, porque indicamos exactamente el tamaño del mensaje. 
+
+Además, cada vez que se envía un mensaje con una apuesta se espera recibir el ACK por parte del servidor, confirmando la recepcción. 
 
 
 # TP0: Docker + Comunicaciones + Concurrencia
