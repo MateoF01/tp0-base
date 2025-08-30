@@ -1,7 +1,7 @@
 import socket
 import logging
 from common.protocol import recv_bet, send_ack
-from utils import store_bet
+from common.utils import Bet, store_bets
 
 
 
@@ -50,21 +50,30 @@ class Server:
         """
         try:
             # Recibo la apuesta
-            bet = recv_bet(client_sock)
-            if not bet:
+            proto_bet = recv_bet(client_sock)
+            if not proto_bet:
                 logging.error("action: receive_bet | result: fail | error: empty payload")
                 return
 
             addr = client_sock.getpeername()
             logging.info(f"action: receive_bet | result: success | ip: {addr[0]} | dni: {bet.documento} | numero: {bet.numero}")
 
-            # Persisto la apuesta
-            store_bet(bet.documento, bet.nombre, bet.apellido, bet.nacimiento, bet.numero)
+            bet = Bet(
+                agency=proto_bet.agency,
+                first_name=proto_bet.nombre,
+                last_name=proto_bet.apellido,
+                document=proto_bet.documento,
+                birthdate=proto_bet.nacimiento,
+                number=proto_bet.numero,
+            )
 
-            logging.info(f"action: apuesta_almacenada | result: success | dni: {bet.documento} | numero: {bet.numero}")
+            # Persisto la apuesta
+            store_bets([bet])
+
+            logging.info(f"action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}")
 
             # Devuelvo ack
-            send_ack(client_sock, bet)
+            send_ack(client_sock, proto_bet)
 
         except Exception as e:
             logging.error(f"action: handle_client | result: fail | error: {e}")

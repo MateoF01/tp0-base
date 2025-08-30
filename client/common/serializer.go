@@ -6,21 +6,22 @@ import (
 )
 
 func SerializeBet(b Bet) []byte {
-    payload := fmt.Sprintf("%s|%s|%s|%s|%s",
-        b.Documento, b.Nombre, b.Apellido, b.Nacimiento, b.Numero)
+    payload := fmt.Sprintf("%s|%s|%s|%s|%s|%s",
+        b.Agency, b.FirstName, b.LastName, b.Document, b.Birthdate, b.Number)
     return []byte(payload)
 }
 
 func DeserializeBet(data []byte) (Bet, error) {
     parts := strings.Split(string(data), "|")
-    if len(parts) != 5 {
+    if len(parts) != 6 {
         return Bet{}, fmt.Errorf("invalid payload: %s", string(data))
     }
     return Bet{
-        Documento:  parts[0],
-        Nombre:     parts[1],
-        Apellido:   parts[2],
-        Nacimiento: parts[3],
-        Numero:     parts[4],
+        Agency:    parts[0],
+        FirstName: parts[1],
+        LastName:  parts[2],
+        Document:  parts[3],
+        Birthdate: parts[4],
+        Number:    parts[5],
     }, nil
 }

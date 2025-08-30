@@ -74,11 +74,12 @@ func (c *Client) StartClientLoop() {
 
 		//Construyo la apuesta tomando los datos de config
 		bet := Bet{
-			Documento:  c.config.Documento,
-			Nombre:     c.config.Nombre,
-			Apellido:   c.config.Apellido,
-			Nacimiento: c.config.Nacimiento,
-			Numero:     c.config.Numero,
+			Agency:    c.config.ID,
+			FirstName: c.config.Nombre,
+			LastName:  c.config.Apellido,
+			Document:  c.config.Documento,
+			Birthdate: c.config.Nacimiento,
+			Number:    c.config.Numero,
 		}
 
 		// Enviar la apuesta

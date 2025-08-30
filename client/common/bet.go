@@ -1,9 +1,10 @@
 package common
 
 type Bet struct {
-    Documento  string
-    Nombre     string
-    Apellido   string
-    Nacimiento string
-    Numero     string
+    Agency     string
+    FirstName  string
+    LastName   string
+    Document   string
+    Birthdate  string
+    Number     string
 }
