@@ -91,6 +91,8 @@ Además debí modificar el generador-compose.py, para que el cliente no lea mas 
 Además noté que lo mejor, es también pasar la ubicacion del archivo en el yaml, y no tenerlo directamente definido en el codigo. Así que agregue esa posibilidad tanto para el csv de cada agencia como para la configuración del client. 
 Tambíen cabe aclarar, que la cantidad de apuestas en un batch, llega definida en el archivo de configuración, donde se indica el maxAmount 
 
+# Ejercicio 7
+
 
 # TP0: Docker + Comunicaciones + Concurrencia
 

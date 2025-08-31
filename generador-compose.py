@@ -3,45 +3,6 @@ import sys
 nombre_archivo = sys.argv[1]  
 n_clientes = sys.argv[2]
 
-# Personas de ejemplo
-personas = [
-    {
-        "NOMBRE": "Charles",
-        "APELLIDO": "Bukowski",
-        "DOCUMENTO": "30904465",
-        "NACIMIENTO": "1999-03-17",
-        "NUMERO": "7574",
-    },
-    {
-        "NOMBRE": "Jorge Luis",
-        "APELLIDO": "Borges",
-        "DOCUMENTO": "28456789",
-        "NACIMIENTO": "1985-07-12",
-        "NUMERO": "1234",
-    },
-    {
-        "NOMBRE": "Fiodor",
-        "APELLIDO": "Dovstoievsky",
-        "DOCUMENTO": "33222444",
-        "NACIMIENTO": "1992-11-02",
-        "NUMERO": "5678",
-    },
-    {
-        "NOMBRE": "George",
-        "APELLIDO": "Orwell",
-        "DOCUMENTO": "40123456",
-        "NACIMIENTO": "2000-01-25",
-        "NUMERO": "9012",
-    },
-    {
-        "NOMBRE": "Haruki",
-        "APELLIDO": "Murakami",
-        "DOCUMENTO": "37889900",
-        "NACIMIENTO": "1995-05-30",
-        "NUMERO": "3456",
-    },
-]
-
 #Construyo seccion de clientes
 
 clientes = ''
