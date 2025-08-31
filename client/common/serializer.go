@@ -11,17 +11,23 @@ func SerializeBet(b Bet) []byte {
     return []byte(payload)
 }
 
-func DeserializeBet(data []byte) (Bet, error) {
-    parts := strings.Split(string(data), "|")
-    if len(parts) != 6 {
-        return Bet{}, fmt.Errorf("invalid payload: %s", string(data))
+func DeserializeAck(data []byte) (isOk bool, count int, err error) {
+    parts := strings.SplitN(string(data), "|", 2)
+    if len(parts) != 2 {
+        return false, 0, fmt.Errorf("invalid ack format: %s", string(data))
     }
-    return Bet{
-        Agency:    parts[0],
-        FirstName: parts[1],
-        LastName:  parts[2],
-        Document:  parts[3],
-        Birthdate: parts[4],
-        Number:    parts[5],
-    }, nil
+
+    count, convErr := strconv.Atoi(parts[1])
+    if convErr != nil {
+        return false, 0, fmt.Errorf("invalid count in ack: %s", parts[1])
+    }
+
+    switch parts[0] {
+    case "OK":
+        return true, count, nil
+    case "ERR":
+        return false, count, nil
+    default:
+        return false, 0, fmt.Errorf("unknown ack status: %s", parts[0])
+    }
 }

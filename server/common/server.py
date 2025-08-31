@@ -1,6 +1,6 @@
 import socket
 import logging
-from common.protocol import recv_bet, send_ack
+from common.protocol import recv_bets, send_ack, send_error
 from common.utils import store_bets
 
 
@@ -49,23 +49,19 @@ class Server:
         client socket will also be closed
         """
         try:
-            # Recibo la apuesta
-            bet = recv_bet(client_sock)
-            if not bet:
-                logging.error("action: receive_bet | result: fail | error: empty payload")
+            bets = recv_bets(client_sock)
+            if not bets:
+                logging.error("action: apuesta_recibida | result: fail | cantidad: 0 | error: empty_batch")
+                send_error(client_sock, "ERR|0")
                 return
 
-            addr = client_sock.getpeername()
-            logging.info(f"action: receive_bet | result: success | ip: {addr[0]} | dni: {bet.document} | numero: {bet.number}")
-
-
-            # Persisto la apuesta
-            store_bets([bet])
-
-            logging.info(f"action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}")
-
-            # Devuelvo ack
-            send_ack(client_sock, bet)
+            try:
+                store_bets(bets)  # guarda todas las apuestas
+                logging.info(f"action: apuesta_recibida | result: success | cantidad: {len(bets)}")
+                send_ack(client_sock, f"OK|{len(bets)}")
+            except Exception as e:
+                logging.error(f"action: apuesta_recibida | result: fail | cantidad: {len(bets)} | error: {e}")
+                send_error(client_sock, f"ERR|{len(bets)}")
 
         except Exception as e:
             logging.error(f"action: handle_client | result: fail | error: {e}")
