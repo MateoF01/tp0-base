@@ -56,18 +56,22 @@ func (c *Client) Close() {
     }
 }
 
-// StartClientLoop Send messages to the client until some time threshold is met
+// StartClientLoop Send messages to the server until all bets are sent
 func (c *Client) StartClientLoop() {
-
-
 	// Cargo apuestas desde CSV
 	bets, err := LoadBetsFromCSV(c.config.DatasetPath, c.config.ID)
 	if err != nil {
 		log.Criticalf("action: load_bets | result: fail | error: %v", err)
 		return
-	}	
-	
-	//Voy dividiendo en batches del tamaño especificado en config
+	}
+
+	// Creo el socket una sola vez
+	if err := c.createClientSocket(); err != nil {
+		return
+	}
+	defer c.conn.Close() // se cierra al terminar la función, salvo que salgamos antes por return
+
+	// Voy dividiendo en batches del tamaño especificado en config
 	for i := 0; i < len(bets); i += c.config.BatchMaxAmount {
 		end := i + c.config.BatchMaxAmount
 		if end > len(bets) {
@@ -75,31 +79,25 @@ func (c *Client) StartClientLoop() {
 		}
 		batch := bets[i:end]
 
-		if err := c.createClientSocket(); err != nil {
-			return
-		}
-
+		// Envío batch
 		if err := SendBets(c.conn, batch); err != nil {
 			log.Errorf("action: send_bets | result: fail | error: %v", err)
-			c.conn.Close()
 			return
 		}
 
+		// Recibo ACK
 		isOk, betsCount, err := ReceiveAck(c.conn)
-		c.conn.Close()
-
-		if !isOk {
+		if err != nil || !isOk {
 			log.Errorf("action: receive_ack | result: fail | error: %v", err)
 			return
 		}
 
-		log.Infof("action: batch_enviado | result: success | cantidad: %d | ack: %s",
-			betsCount, "ACK",
+		log.Infof("action: batch_enviado | result: success | cantidad: %d | ack: ACK",
+			betsCount,
 		)
 
 		time.Sleep(c.config.LoopPeriod)
 	}
 
-	
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
 }
