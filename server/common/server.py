@@ -49,22 +49,23 @@ class Server:
         client socket will also be closed
         """
         try:
-            bets = recv_bets(client_sock)
-            if not bets:
-                logging.error("action: apuesta_recibida | result: fail | cantidad: 0 | error: empty_batch")
-                send_error(client_sock, "ERR|0")
-                return
+            while True:
+                try:
+                    bets = recv_bets(client_sock)
+                    if not bets:  # si no hay más datos → cliente cerró
+                        break
 
-            try:
-                store_bets(bets)  # guarda todas las apuestas
-                logging.info(f"action: apuesta_recibida | result: success | cantidad: {len(bets)}")
-                send_ack(client_sock, f"OK|{len(bets)}")
-            except Exception as e:
-                logging.error(f"action: apuesta_recibida | result: fail | cantidad: {len(bets)} | error: {e}")
-                send_error(client_sock, f"ERR|{len(bets)}")
+                    try:
+                        store_bets(bets)
+                        logging.info(f"action: apuesta_recibida | result: success | cantidad: {len(bets)}")
+                        send_ack(client_sock, f"OK|{len(bets)}")
+                    except Exception as e:
+                        logging.error(f"action: apuesta_recibida | result: fail | cantidad: {len(bets)} | error: {e}")
+                        send_error(client_sock, f"ERR|{len(bets)}")
 
-        except Exception as e:
-            logging.error(f"action: handle_client | result: fail | error: {e}")
+                except Exception as e:
+                    logging.error(f"action: handle_client | result: fail | error: {e}")
+                    break
         finally:
             client_sock.close()
 
