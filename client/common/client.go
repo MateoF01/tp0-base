@@ -14,13 +14,8 @@ type ClientConfig struct {
 	ServerAddress string
 	LoopAmount    int
 	LoopPeriod    time.Duration
-
-	//ej5
-	Nombre    string
-    Apellido  string
-    Documento string
-    Nacimiento string
-    Numero    string
+	DatasetPath    string
+	BatchMaxAmount int
 }
 
 // Client Entity that encapsulates how
@@ -66,7 +61,7 @@ func (c *Client) StartClientLoop() {
 
 
 	// Cargo apuestas desde CSV
-	bets, err := common.LoadBetsFromCSV(clientConfig.DatasetPath, clientConfig.ID)
+	bets, err := LoadBetsFromCSV(c.config.DatasetPath, c.config.ID)
 	if err != nil {
 		log.Criticalf("action: load_bets | result: fail | error: %v", err)
 		return
@@ -90,16 +85,16 @@ func (c *Client) StartClientLoop() {
 			return
 		}
 
-		ack, err := ReceiveBatchAck(c.conn)
+		isOk, betsCount, err := ReceiveAck(c.conn)
 		c.conn.Close()
 
-		if err != nil {
+		if !isOk {
 			log.Errorf("action: receive_ack | result: fail | error: %v", err)
 			return
 		}
 
 		log.Infof("action: batch_enviado | result: success | cantidad: %d | ack: %s",
-			len(batch), ack,
+			betsCount, "ACK",
 		)
 
 		time.Sleep(c.config.LoopPeriod)

@@ -54,7 +54,7 @@ for i in range(1, int(n_clientes) + 1):
     environment:
       - CLI_ID={i}
       - CLI_DATASET=/data/agency.csv
-      - CLI_CONFIG=./config.yaml
+      - CLI_CONFIG=/config.yaml
     volumes:
       - ./client/config.yaml:/config.yaml:ro
       - ./.data/agency-{i}.csv:/data/agency.csv:ro
