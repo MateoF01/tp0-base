@@ -53,19 +53,18 @@ for i in range(1, int(n_clientes) + 1):
     entrypoint: /client
     environment:
       - CLI_ID={i}
-      - CLI_NOMBRE={personas[i-1]["NOMBRE"]}
-      - CLI_APELLIDO={personas[i-1]["APELLIDO"]}
-      - CLI_DOCUMENTO={personas[i-1]["DOCUMENTO"]}
-      - CLI_NACIMIENTO={personas[i-1]["NACIMIENTO"]}
-      - CLI_NUMERO={personas[i-1]["NUMERO"]}
+      - CLI_DATASET=/data/agency.csv
+      - CLI_CONFIG=./config.yaml
     volumes:
       - ./client/config.yaml:/config.yaml:ro
+      - ./.data/agency-{i}.csv:/data/agency.csv:ro
     networks:
       - testing_net
     depends_on:
       - server
 
 """
+
 
 
 #Defino archivo base

@@ -7,16 +7,24 @@ import (
 	"fmt"
 )
 
-// Envía un Bet con protocolo length-prefixed
-func SendBet(conn net.Conn, b Bet) error {
-    data := SerializeBet(b)
-    length := uint32(len(data))
 
-    if err := binary.Write(conn, binary.BigEndian, length); err != nil {
+func SendBets(conn net.Conn, bets []Bet) error {
+    // Escribir cantidad de apuestas
+    if err := binary.Write(conn, binary.BigEndian, uint32(len(bets))); err != nil {
         return err
     }
-    _, err := conn.Write(data)
-    return err
+
+    // Escribir cada apuesta
+    for _, b := range bets {
+        data := SerializeBet(b)
+        if err := binary.Write(conn, binary.BigEndian, uint32(len(data))); err != nil {
+            return err
+        }
+        if _, err := conn.Write(data); err != nil {
+            return err
+        }
+    }
+    return nil
 }
 
 // Recibe un Bet con protocolo length-prefixed

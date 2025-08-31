@@ -39,20 +39,18 @@ func InitConfig() (*viper.Viper, error) {
 	v.BindEnv("loop", "period")
 	v.BindEnv("loop", "amount")
 	v.BindEnv("log", "level")
+	v.BindEnv("dataset")
+	v.BindEnv("batch", "maxAmount")
 
-	//env ejercio 5
-	v.BindEnv("nombre")
-	v.BindEnv("apellido")
-	v.BindEnv("documento")
-	v.BindEnv("nacimiento")
-	v.BindEnv("numero")
 
 
 	// Try to read configuration from config file. If config file
 	// does not exists then ReadInConfig will fail but configuration
 	// can be loaded from the environment variables so we shouldn't
 	// return an error in that case
-	v.SetConfigFile("./config.yaml")
+
+	configPath := os.Getenv("CLI_CONFIG")
+	v.SetConfigFile(configPath)
 	if err := v.ReadInConfig(); err != nil {
 		fmt.Printf("Configuration could not be read from config file. Using env variables instead")
 	}
@@ -118,12 +116,8 @@ func main() {
 		ID:            v.GetString("id"),
 		LoopAmount:    v.GetInt("loop.amount"),
 		LoopPeriod:    v.GetDuration("loop.period"),
-
-		Nombre:        v.GetString("nombre"),
-		Apellido:      v.GetString("apellido"),
-		Documento:     v.GetString("documento"),
-		Nacimiento:    v.GetString("nacimiento"),
-		Numero:        v.GetString("numero"),
+		DatasetPath: v.GetString("dataset"),
+		BatchMaxAmount: v.GetInt("batch.maxAmount"),
 	}
 
 	client := common.NewClient(clientConfig)

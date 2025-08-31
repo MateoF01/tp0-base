@@ -63,55 +63,48 @@ func (c *Client) Close() {
 
 // StartClientLoop Send messages to the client until some time threshold is met
 func (c *Client) StartClientLoop() {
-	// There is an autoincremental msgID to identify every message sent
-	// Messages if the message amount threshold has not been surpassed
-	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
-		// Create the connection the server in every loop iteration. Send an
-		
+
+
+	// Cargo apuestas desde CSV
+	bets, err := common.LoadBetsFromCSV(clientConfig.DatasetPath, clientConfig.ID)
+	if err != nil {
+		log.Criticalf("action: load_bets | result: fail | error: %v", err)
+		return
+	}	
+	
+	//Voy dividiendo en batches del tamaño especificado en config
+	for i := 0; i < len(bets); i += c.config.BatchMaxAmount {
+		end := i + c.config.BatchMaxAmount
+		if end > len(bets) {
+			end = len(bets)
+		}
+		batch := bets[i:end]
+
 		if err := c.createClientSocket(); err != nil {
 			return
 		}
 
-		//Construyo la apuesta tomando los datos de config
-		bet := Bet{
-			Agency:    c.config.ID,
-			FirstName: c.config.Nombre,
-			LastName:  c.config.Apellido,
-			Document:  c.config.Documento,
-			Birthdate: c.config.Nacimiento,
-			Number:    c.config.Numero,
-		}
-
-		// Enviar la apuesta
-		err := SendBet(c.conn, bet)
-		if err != nil {
-			log.Errorf("action: send_bet | result: fail | dni: %s | error: %v",
-				bet.Document, err,
-			)
+		if err := SendBets(c.conn, batch); err != nil {
+			log.Errorf("action: send_bets | result: fail | error: %v", err)
 			c.conn.Close()
 			return
 		}
 
-		// Esperar el ACK
-		ack, err := ReceiveAck(c.conn)
-		c.conn.Close() // cerramos la conexión después de recibir el ACK
+		ack, err := ReceiveBatchAck(c.conn)
+		c.conn.Close()
 
 		if err != nil {
-			log.Errorf("action: receive_ack | result: fail | dni: %s | error: %v",
-				bet.Document, err,
-			)
+			log.Errorf("action: receive_ack | result: fail | error: %v", err)
 			return
 		}
 
-		// Loguear el éxito
-		log.Infof("action: apuesta_enviada | result: success | dni: %s | numero: %s | ack: %s",
-			bet.Document, bet.Number, ack,
+		log.Infof("action: batch_enviado | result: success | cantidad: %d | ack: %s",
+			len(batch), ack,
 		)
 
-
-		// Wait a time between sending one message and the next one
 		time.Sleep(c.config.LoopPeriod)
-
 	}
+
+	
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
 }

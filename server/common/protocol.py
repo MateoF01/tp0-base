@@ -7,20 +7,34 @@ def send_bet(sock: socket.socket, bet):
     length = struct.pack(">I", len(data))
     sock.sendall(length + data)
 
-def recv_bet(sock: socket.socket):
-    raw_len = sock.recv(4)
-    if not raw_len:
-        return None
-    msg_len = struct.unpack(">I", raw_len)[0]
+def recv_bets(sock):
+    # Leo cantidad de apuestas (N)
+    raw_n = sock.recv(4)
+    if not raw_n:
+        return []
+    n = struct.unpack(">I", raw_n)[0]
 
-    data = b""
-    while len(data) < msg_len:
-        packet = sock.recv(msg_len - len(data))
-        if not packet:
-            return None
-        data += packet
+    bets = []
+    for _ in range(n):
+        # Leo longitud del payload
+        raw_len = sock.recv(4)
+        if not raw_len:
+            return []
+        length = struct.unpack(">I", raw_len)[0]
 
-    return deserialize_bet(data)
+        # Leo payload completo
+        data = b""
+        while len(data) < length:
+            packet = sock.recv(length - len(data))
+            if not packet:
+                return []
+            data += packet
+
+        bet = deserialize_bet(data)
+        bets.append(bet)
+
+    return bets
+
 
 def send_ack(sock, bet):
     payload = f"ACK".encode("utf-8")

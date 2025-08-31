@@ -81,6 +81,17 @@ De esta forma podemos evitar los fenómenos de short read y short write, porque 
 Además, cada vez que se envía un mensaje con una apuesta se espera recibir el ACK por parte del servidor, confirmando la recepcción. 
 
 
+# Ejercicio 6
+
+Para implementar la funcionalidad modifico el protocolo. Se adaptara de la siguiente forma: Los primeros 4 byte del mensaje indicará la cantidad de apuestas (Permitiendo de esta forma 4 294 967 295 de apuestas). Luego cada apuesta dentro de ese mensaje mantiene el formato propuesto anteriromente. Primero indicando la longitud del mensaje, y luego todo el string con la información.
+
+De esta forma podemos saber siempre que se han de procesar N apuestas, y que cada apuesta tiene una longitud X.
+
+Además debí modificar el generador-compose.py, para que el cliente no lea mas la apuesta desde las variables de entorno, y las contruya desde el CSV inyectado con volumens.
+Además noté que lo mejor, es también pasar la ubicacion del archivo en el yaml, y no tenerlo directamente definido en el codigo. Así que agregue esa posibilidad tanto para el csv de cada agencia como para la configuración del client. 
+Tambíen cabe aclarar, que la cantidad de apuestas en un batch, llega definida en el archivo de configuración, donde se indica el maxAmount 
+
+
 # TP0: Docker + Comunicaciones + Concurrencia
 
 En el presente repositorio se provee un esqueleto básico de cliente/servidor, en donde todas las dependencias del mismo se encuentran encapsuladas en containers. Los alumnos deberán resolver una guía de ejercicios incrementales, teniendo en cuenta las condiciones de entrega descritas al final de este enunciado.
