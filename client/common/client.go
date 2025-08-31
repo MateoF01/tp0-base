@@ -56,7 +56,8 @@ func (c *Client) Close() {
     }
 }
 
-// StartClientLoop Send messages to the server until all bets are sent
+// StartClientLoop conecta, envía hello, luego todas las bets en batches,
+// después manda FIN y finalmente GET_WINNERS.
 func (c *Client) StartClientLoop() {
 	// Cargo apuestas desde CSV
 	bets, err := LoadBetsFromCSV(c.config.DatasetPath, c.config.ID)
@@ -69,9 +70,16 @@ func (c *Client) StartClientLoop() {
 	if err := c.createClientSocket(); err != nil {
 		return
 	}
-	defer c.conn.Close() // se cierra al terminar la función, salvo que salgamos antes por return
+	defer c.conn.Close()
 
-	// Voy dividiendo en batches del tamaño especificado en config
+	// === 1) HELLO ===
+	if err := SendHello(c.conn, c.config.ID); err != nil {
+		log.Errorf("action: send_hello | result: fail | error: %v", err)
+		return
+	}
+	log.Infof("action: send_hello | result: success | client_id: %v", c.config.ID)
+
+	// === 2) BETS en batches ===
 	for i := 0; i < len(bets); i += c.config.BatchMaxAmount {
 		end := i + c.config.BatchMaxAmount
 		if end > len(bets) {
@@ -100,4 +108,29 @@ func (c *Client) StartClientLoop() {
 	}
 
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
+
+	// === 3) END ===
+	if err := SendEnd(c.conn, c.config.ID); err != nil {
+		log.Errorf("action: send_end | result: fail | error: %v", err)
+		return
+	}
+	log.Infof("action: send_end | result: success | client_id: %v", c.config.ID)
+
+	// === 4) GET_WINNERS ===
+	if err := SendGetWinners(c.conn, c.config.ID); err != nil {
+		log.Errorf("action: send_get_winners | result: fail | error: %v", err)
+		return
+	}
+	log.Infof("action: send_get_winners | result: success | client_id: %v", c.config.ID)
+
+	// Esperamos respuesta WINNERS
+	winners, err := ReceiveWinners(c.conn)
+	if err != nil {
+		log.Errorf("action: receive_winners | result: fail | error: %v", err)
+		return
+	}
+	log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %d",
+		len(winners),
+	)
+
 }

@@ -93,6 +93,22 @@ Tambíen cabe aclarar, que la cantidad de apuestas en un batch, llega definida e
 
 # Ejercicio 7
 
+Para este ejercicio se requieren varias modificaciones.
+En primer lugar el servidor debe poder tener nocion de manera dinamica de la cantidad de clientes que se conectan, y el estado de los mismos. Que representará si ya terminaron o no de enviar todas las apuestas. Cuando las N agencias terminen de enviar las apuestas se realiza el sorteo.
+
+En este ejercicio, se actualizo el protocolo, porque la anterior definicion no contemplaba este alcance mas amplio solicitado en la consigna. Ahora cada mensaje comienza con su codigo de mensaje, para poder identificar de que se trata en el primer byte, y poder rediriguir el resto del contenido al determinado handler. 
+
+Ademas debi realizar otros cambios, para poder ordenar el flujo. En primer lugar el cliente se autentica diciendo su id. Ese será el primer mensaje siempre. De esta forma se puede almacenar el socket de cada cliente en el lado del servidor, para tener a los clientes a la espera de la confirmacion de los ganadores sin cerrar la conexion. 
+
+Luego el cliente envía todas las apuestas como se había definido anteriormente.
+
+Luego se envía el mensaje de fin, y en el servidor se marca como terminada la recepcion de mensajes de esa agencia. Como debemos terminar de recibir todos los mensajes de las demas agencias, si no todas estan en fin, seguimos con la siguiente. 
+
+Si el cliente solicita los ganadores pero aun no terminamos de contar, pasamos a contar el siguiente cliente. 
+
+La cantidad de agencias es constante y configurable
+
+
 
 # TP0: Docker + Comunicaciones + Concurrencia
 
