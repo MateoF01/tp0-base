@@ -5,7 +5,7 @@ from common.protocol import (
     recv_message_type, recv_payload
 )
 from common.utils import store_bets, load_bets, has_won
-from .message_types import HELLO, BET_BATCH, END, WINNERS
+from .message_types import HELLO, BET_BATCH, END, WINNERS, GET_WINNERS
 
 
 class Server:
@@ -18,8 +18,7 @@ class Server:
 
         self._running = True
 
-        self._client_sockets = {}       # agency_id -> socket
-        self._agencies_finished = {}    # agency_id -> bool
+        self._agencies_finished = 0    # agency_id -> bool
         self._winners_by_agency = {}    # agency_id -> [dni ganadores]
 
     def run(self):
@@ -40,22 +39,14 @@ class Server:
 
     def __handle_client_connection(self, client_sock):
         try:
-            agency_id = None
             while True:
                 msg_type = recv_message_type(client_sock)
                 if msg_type is None:
                     break
 
-                if msg_type == HELLO:
+                if msg_type == BET_BATCH:
                     payload = recv_payload(client_sock)
-                    agency_id = int(payload.decode())
-                    self._client_sockets[agency_id] = client_sock
-                    self._agencies_finished[agency_id] = False
-                    logging.info(f"action: hello | result: success | agency: {agency_id}")
-
-                elif msg_type == BET_BATCH:
-                    payload = recv_payload(client_sock)
-                    bets = recv_bets(payload)
+                    agency_id, bets = recv_bets(payload)
                     if not bets:
                         break
                     try:
@@ -71,18 +62,24 @@ class Server:
                         send_error(client_sock, f"ERR|{len(bets)}")
 
                 elif msg_type == END:
-                    self._agencies_finished[agency_id] = True
-                    logging.info(f"action: end | result: success | agency: {agency_id}")
+                    self._agencies_finished += 1
+                    payload = recv_payload(client_sock)
 
-                    if self.__all_finished():
-                        self._compute_and_send_winners()
-                        # después de mandar todo, cerramos todas las conexiones
-                        for sock in self._client_sockets.values():
-                            try:
-                                sock.close()
-                            except Exception:
-                                pass
-                        return
+                    logging.info(f"action: end | result: success | agency: {payload}")
+                    break
+
+
+
+                elif msg_type == GET_WINNERS:
+                    payload = recv_payload(client_sock)
+                    if self._agencies_finished == self._expected_agencies:
+                        if(len(self._winners_by_agency) == 0 ): #Si todavia no computamos, computamos
+                            self._compute_winners()                        
+
+                        send_message(client_sock, WINNERS, self._winners_by_agency[payload])
+                    
+                    break
+
         except Exception as e:
             logging.error(f"action: handle_client | result: fail | error: {e}")
         finally:
@@ -98,7 +95,7 @@ class Server:
         logging.info(f"action: accept_connections | result: success | ip: {addr[0]}")
         return c
 
-    def _compute_and_send_winners(self):
+    def _compute_winners(self):
         winners_by_agency = {}
 
         for bet in load_bets():
@@ -107,17 +104,7 @@ class Server:
 
         self._winners_by_agency = winners_by_agency
 
-        for ag_id, sock in self._client_sockets.items():
-            winners = winners_by_agency.get(ag_id, [])
-            dnistr = ",".join(winners)
-            send_message(sock, WINNERS, dnistr.encode("utf-8"))
-            logging.info(
-                f"action: send_winners | result: success | agency: {ag_id} | cant_ganadores: {len(winners)}"
-            )
-
         logging.info("action: sorteo | result: success")
+    
 
-    def __all_finished(self) -> bool:
-        if len(self._agencies_finished) < self._expected_agencies:
-            return False
-        return all(self._agencies_finished.values())
+  

@@ -26,11 +26,6 @@ func SendMessage(conn net.Conn, msgType byte, payload []byte) error {
     return nil
 }
 
-func SendHello(conn net.Conn, agencyID int) error {
-    payload := []byte(fmt.Sprintf("%d", agencyID))
-    return SendMessage(conn, MsgHello, payload)
-}
-
 
 
 func SendBets(conn net.Conn, bets []Bet) error {
@@ -59,6 +54,12 @@ func SendEnd(conn net.Conn, agencyID int) error {
     payload := []byte(fmt.Sprintf("%d", agencyID))
     return SendMessage(conn, MsgFin, payload)
 }
+
+func SendGetWinners(conn net.Conn, agencyID int) error {
+    payload := []byte(fmt.Sprintf("%d", agencyID))
+    return SendMessage(conn, MsgGetWinners, payload)
+}
+
 
 
 

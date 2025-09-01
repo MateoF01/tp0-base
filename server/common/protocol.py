@@ -54,7 +54,7 @@ def recv_bets(payload: bytes):
         bet = deserialize_bet(data)
         bets.append(bet)
 
-    return bets
+    return bets[0].agency, bets
 
 
 def send_message(sock, msg_type: int, payload: bytes):
