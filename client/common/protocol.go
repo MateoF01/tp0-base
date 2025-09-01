@@ -60,10 +60,6 @@ func SendEnd(conn net.Conn, agencyID int) error {
     return SendMessage(conn, MsgFin, payload)
 }
 
-func SendGetWinners(conn net.Conn, agencyID int) error {
-    payload := []byte(fmt.Sprintf("%d", agencyID))
-    return SendMessage(conn, MsgGetWinners, payload)
-}
 
 
 
@@ -84,23 +80,33 @@ func ReceiveMessage(conn net.Conn) (byte, []byte, error) {
 }
 
 func ReceiveWinners(conn net.Conn) ([]string, error) {
-	msgType, payload, err := ReceiveMessage(conn)
-	if err != nil {
-		return nil, err
+	// Leer tipo de mensaje
+	msgType := make([]byte, 1)
+	if _, err := io.ReadFull(conn, msgType); err != nil {
+		return nil, fmt.Errorf("failed to read message type: %w", err)
 	}
-	if msgType != MsgWinners {
-		return nil, fmt.Errorf("unexpected msg type: %d", msgType)
+	if msgType[0] != MsgWinners {
+		return nil, fmt.Errorf("unexpected message type: %d", msgType[0])
 	}
-	if len(payload) == 0 {
+
+	// Leer longitud
+	var length uint32
+	if err := binary.Read(conn, binary.BigEndian, &length); err != nil {
+		return nil, fmt.Errorf("failed to read payload length: %w", err)
+	}
+
+	// Leer payload
+	data := make([]byte, length)
+	if _, err := io.ReadFull(conn, data); err != nil {
+		return nil, fmt.Errorf("failed to read payload: %w", err)
+	}
+
+	payload := string(data)
+	if payload == "" {
 		return []string{}, nil
 	}
-	// payload es "dni1,dni2,dni3"
-	list := strings.Split(string(payload), ",")
-	// si el server manda vacío → string="" → []string{""}, filtramos
-	if len(list) == 1 && list[0] == "" {
-		return []string{}, nil
-	}
-	return list, nil
+	winners := strings.Split(payload, ",")
+	return winners, nil
 }
 
 

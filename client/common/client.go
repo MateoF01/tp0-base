@@ -116,14 +116,7 @@ func (c *Client) StartClientLoop() {
 	}
 	log.Infof("action: send_end | result: success | client_id: %v", c.config.ID)
 
-	// === 4) GET_WINNERS ===
-	if err := SendGetWinners(c.conn, c.config.ID); err != nil {
-		log.Errorf("action: send_get_winners | result: fail | error: %v", err)
-		return
-	}
-	log.Infof("action: send_get_winners | result: success | client_id: %v", c.config.ID)
-
-	// Esperamos respuesta WINNERS
+	// === 4) Esperamos WINNERS ===
 	winners, err := ReceiveWinners(c.conn)
 	if err != nil {
 		log.Errorf("action: receive_winners | result: fail | error: %v", err)
@@ -132,5 +125,6 @@ func (c *Client) StartClientLoop() {
 	log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %d",
 		len(winners),
 	)
+
 
 }

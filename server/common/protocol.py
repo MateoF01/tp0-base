@@ -13,11 +13,8 @@ def recv_message_type(sock) -> int:
 
 
 def recv_payload(sock) -> bytes:
-    """
-    Lee el payload genérico: primero uint32 length, luego los bytes.
-    """
     raw_len = sock.recv(4)
-    if not raw_len:
+    if not raw_len or len(raw_len) < 4:
         return b""
     length = struct.unpack(">I", raw_len)[0]
 
@@ -28,6 +25,7 @@ def recv_payload(sock) -> bytes:
             return b""
         data += chunk
     return data
+
 
 
 def recv_bets(payload: bytes):
