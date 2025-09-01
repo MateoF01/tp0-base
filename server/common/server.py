@@ -1,8 +1,8 @@
 import socket
 import logging
 from common.protocol import (
-    recv_bets, send_ack, send_error, send_message,
-    recv_message_type, recv_payload
+    recv_bets, send_ack, send_error, send_winners,
+    recv_message_type, recv_payload, recv_agency_id
 )
 from common.utils import store_bets, load_bets, has_won
 from .message_types import HELLO, BET_BATCH, END, WINNERS, GET_WINNERS
@@ -64,20 +64,26 @@ class Server:
                 elif msg_type == END:
                     self._agencies_finished += 1
                     payload = recv_payload(client_sock)
+                    agency_id = recv_agency_id(payload)
 
-                    logging.info(f"action: end | result: success | agency: {payload}")
+                    logging.info(f"action: end | result: success | agency: {agency_id}")
                     break
 
 
 
                 elif msg_type == GET_WINNERS:
                     payload = recv_payload(client_sock)
+                    agency_id = recv_agency_id(payload)
+
+                    logging.info(f"action: get_winners | result: in_progress | agency: {agency_id}")
+
                     if self._agencies_finished == self._expected_agencies:
                         if(len(self._winners_by_agency) == 0 ): #Si todavia no computamos, computamos
                             self._compute_winners()                        
 
-                        send_message(client_sock, WINNERS, self._winners_by_agency[payload])
-                    
+                        send_winners(client_sock, self._winners_by_agency[agency_id], WINNERS)
+                        logging.info(f"action: get_winners | result: sucecess | agency: {agency_id}")
+
                     break
 
         except Exception as e:
@@ -104,7 +110,7 @@ class Server:
 
         self._winners_by_agency = winners_by_agency
 
-        logging.info("action: sorteo | result: success")
+        logging.info(f"action: sorteo | result: success")
     
 
   

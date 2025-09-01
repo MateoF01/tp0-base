@@ -76,3 +76,25 @@ def send_error(sock, msg: str):
     data = msg.encode("utf-8")
     length = struct.pack(">I", len(data))
     sock.sendall(length + data)
+
+def recv_agency_id(payload: bytes) -> int:
+
+    if not payload:
+        return None
+    try:
+        return int(payload.decode("utf-8").strip())
+    except ValueError:
+        return None
+
+def send_winners(sock, winners: list[str], msg_type: int = 3):
+    payload = b""
+
+    # cantidad de ganadores
+    payload += struct.pack(">I", len(winners))
+
+    for w in winners:
+        data = w.encode("utf-8")
+        payload += struct.pack(">I", len(data)) + data
+
+    # usar el framing estándar
+    send_message(sock, msg_type, payload)
