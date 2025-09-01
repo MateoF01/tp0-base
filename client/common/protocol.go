@@ -6,7 +6,6 @@ import (
     "fmt"
     "io"
     "net"
-    "strings"
 )
 
 
@@ -81,34 +80,53 @@ func ReceiveMessage(conn net.Conn) (byte, []byte, error) {
 }
 
 func ReceiveWinners(conn net.Conn) ([]string, error) {
-	// Leer tipo de mensaje
-	msgType := make([]byte, 1)
-	if _, err := io.ReadFull(conn, msgType); err != nil {
-		return nil, fmt.Errorf("failed to read message type: %w", err)
-	}
-	if msgType[0] != MsgWinners {
-		return nil, fmt.Errorf("unexpected message type: %d", msgType[0])
-	}
+    // === 1) Leer header: tipo y longitud ===
+    header := make([]byte, 5) // 1 byte tipo + 4 bytes length
+    if _, err := io.ReadFull(conn, header); err != nil {
+        return nil, fmt.Errorf("failed to read header: %w", err)
+    }
 
-	// Leer longitud
-	var length uint32
-	if err := binary.Read(conn, binary.BigEndian, &length); err != nil {
-		return nil, fmt.Errorf("failed to read payload length: %w", err)
-	}
+    msgType := header[0]
+    if msgType != MsgWinners { // tu constante WINNERS
+        return nil, fmt.Errorf("unexpected msg type: %d", msgType)
+    }
 
-	// Leer payload
-	data := make([]byte, length)
-	if _, err := io.ReadFull(conn, data); err != nil {
-		return nil, fmt.Errorf("failed to read payload: %w", err)
-	}
+    length := int(binary.BigEndian.Uint32(header[1:5]))
 
-	payload := string(data)
-	if payload == "" {
-		return []string{}, nil
-	}
-	winners := strings.Split(payload, ",")
-	return winners, nil
+    // === 2) Leer payload completo ===
+    payload := make([]byte, length)
+    if _, err := io.ReadFull(conn, payload); err != nil {
+        return nil, fmt.Errorf("failed to read payload: %w", err)
+    }
+
+    // === 3) Parsear payload ===
+    if len(payload) < 4 {
+        return nil, fmt.Errorf("payload too short")
+    }
+
+    n := int(binary.BigEndian.Uint32(payload[0:4]))
+    winners := make([]string, 0, n)
+
+    offset := 4
+    for i := 0; i < n; i++ {
+        if offset+4 > len(payload) {
+            return nil, fmt.Errorf("invalid payload (len missing)")
+        }
+        l := int(binary.BigEndian.Uint32(payload[offset : offset+4]))
+        offset += 4
+
+        if offset+l > len(payload) {
+            return nil, fmt.Errorf("invalid payload (string overflow)")
+        }
+        w := string(payload[offset : offset+l])
+        offset += l
+
+        winners = append(winners, w)
+    }
+
+    return winners, nil
 }
+
 
 
 func ReceiveAck(conn net.Conn) (bool, int, error) {

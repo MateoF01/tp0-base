@@ -87,14 +87,10 @@ def recv_agency_id(payload: bytes) -> int:
         return None
 
 def send_winners(sock, winners: list[str], msg_type: int = 3):
-    payload = b""
-
-    # cantidad de ganadores
-    payload += struct.pack(">I", len(winners))
+    payload = struct.pack(">I", len(winners))  # cantidad N
 
     for w in winners:
         data = w.encode("utf-8")
         payload += struct.pack(">I", len(data)) + data
 
-    # usar el framing estándar
     send_message(sock, msg_type, payload)
