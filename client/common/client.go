@@ -138,6 +138,7 @@ func (c *Client) StartClientLoop() {
 
 // TryGetWinners intenta conectarse, pedir ganadores y recibirlos.
 func (c *Client) TryGetWinners() ([]string, error) {
+
     // Nueva conexión cada intento
     if err := c.createClientSocket(); err != nil {
         return nil, err
@@ -150,6 +151,7 @@ func (c *Client) TryGetWinners() ([]string, error) {
     }
 
     winners, err := ReceiveWinners(c.conn)
+
     if err != nil {
         return nil, err
     }

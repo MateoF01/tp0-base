@@ -76,13 +76,15 @@ class Server:
                     agency_id = recv_agency_id(payload)
 
                     logging.info(f"action: get_winners | result: in_progress | agency: {agency_id}")
+                    
 
                     if self._agencies_finished == self._expected_agencies:
                         if(len(self._winners_by_agency) == 0 ): #Si todavia no computamos, computamos
                             self._compute_winners()                        
 
-                        send_winners(client_sock, self._winners_by_agency[agency_id], WINNERS)
-                        logging.info(f"action: get_winners | result: sucecess | agency: {agency_id}")
+                        winners = self._winners_by_agency.get(agency_id, []) # si no tiene ganadores: lista vacia
+                        send_winners(client_sock, winners, WINNERS)
+                        logging.info(f"action: get_winners | result: success | agency: {agency_id}")
 
                     break
 
