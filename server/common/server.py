@@ -113,6 +113,8 @@ class Server:
         self._winners_by_agency = winners_by_agency
 
         logging.info(f"action: sorteo | result: success")
+        logging.info(f"winners by agency {self._winners_by_agency}")
+
     
 
   
