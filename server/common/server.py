@@ -70,7 +70,8 @@ class Server:
                         )
 
                     elif msg_type == BET_BATCH:
-                        bets = recv_bets(client_sock, payload)
+                        payload = recv_payload(client_sock)
+                        bets = recv_bets(payload)                        
                         if not bets:
                             break
                         try:

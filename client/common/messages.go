@@ -8,5 +8,4 @@ const (
     MsgWinners    = 0x04
     MsgAck        = 0x05
     MsgErr        = 0x06
-	MsgWinners    = 0x07
 )

@@ -29,7 +29,7 @@ for i in range(1, int(n_clientes) + 1):
 
 
 #Defino archivo base
-archivo_base = """name: tp0
+archivo_base = f"""name: tp0
 services:
   server:
     container_name: server

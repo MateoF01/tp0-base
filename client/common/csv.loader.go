@@ -7,7 +7,7 @@ import (
     "os"
 )
 
-func LoadBetsFromCSV(path string, agency string) ([]Bet, error) {
+func LoadBetsFromCSV(path string, agency int) ([]Bet, error) {
     file, err := os.Open(path)
     if err != nil {
         return nil, fmt.Errorf("failed to open dataset: %w", err)

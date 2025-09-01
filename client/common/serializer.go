@@ -8,7 +8,13 @@ import (
 
 func SerializeBet(b Bet) []byte {
     payload := fmt.Sprintf("%s|%s|%s|%s|%s|%s",
-        b.Agency, b.FirstName, b.LastName, b.Document, b.Birthdate, b.Number)
+        strconv.Itoa(b.Agency),    // int -> string (otra vez)
+        b.FirstName,               // string
+        b.LastName,                // string
+        b.Document,                // string
+        b.Birthdate,               // string "YYYY-MM-DD"
+        b.Number,    			   // string
+    )
     return []byte(payload)
 }
 

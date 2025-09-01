@@ -4,18 +4,17 @@ from .serializer import deserialize_bet
 
 def recv_message_type(sock) -> int:
     """
-    Lee solo 1 byte con el tipo de mensaje.
-    Devuelve un int (0-255).
+    Lee solo el byte de tipo de mensaje.
     """
     raw_type = sock.recv(1)
     if not raw_type:
         return None
-    return raw_type[0]  # convierte de bytes a int
+    return raw_type[0]
 
 
 def recv_payload(sock) -> bytes:
     """
-    Lee un payload genérico: primero uint32 length, luego length bytes.
+    Lee el payload genérico: primero uint32 length, luego los bytes.
     """
     raw_len = sock.recv(4)
     if not raw_len:
@@ -31,30 +30,28 @@ def recv_payload(sock) -> bytes:
     return data
 
 
-def recv_bets(sock) -> list:
+def recv_bets(payload: bytes):
     """
-    Lee un payload de tipo BET_BATCH usando el formato actual:
-      - uint32 N
-      - N veces: [uint32 len + bet_payload]
+    Decodifica un payload de tipo BET_BATCH.
+    Formato:
+      [uint32 N]
+      N veces: [uint32 len][bet_payload]
     """
-    raw_n = sock.recv(4)
-    if not raw_n:
+    if not payload:
         return []
-    n = struct.unpack(">I", raw_n)[0]
+
+    # cantidad de apuestas
+    n = struct.unpack(">I", payload[:4])[0]
+    offset = 4
 
     bets = []
     for _ in range(n):
-        raw_len = sock.recv(4)
-        if not raw_len:
-            return []
-        length = struct.unpack(">I", raw_len)[0]
+        # longitud del bet
+        length = struct.unpack(">I", payload[offset:offset+4])[0]
+        offset += 4
 
-        data = b""
-        while len(data) < length:
-            packet = sock.recv(length - len(data))
-            if not packet:
-                return []
-            data += packet
+        data = payload[offset:offset+length]
+        offset += length
 
         bet = deserialize_bet(data)
         bets.append(bet)

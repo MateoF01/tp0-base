@@ -7,6 +7,7 @@ import (
     "syscall"
 	"strings"
 	"time"
+	"strconv"
 
 	"github.com/op/go-logging"
 	"github.com/pkg/errors"
@@ -111,9 +112,15 @@ func main() {
 	// Print program config with debugging purposes
 	PrintConfig(v)
 
+	idInt, err := strconv.Atoi(v.GetString("id"))
+    if err != nil {
+        log.Criticalf("invalid CLI_ID: %v", err)
+    }
+
+
 	clientConfig := common.ClientConfig{
 		ServerAddress: v.GetString("server.address"),
-		ID:            v.GetString("id"),
+		ID:            idInt,
 		LoopAmount:    v.GetInt("loop.amount"),
 		LoopPeriod:    v.GetDuration("loop.period"),
 		DatasetPath: v.GetString("dataset"),
