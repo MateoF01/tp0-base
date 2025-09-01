@@ -108,7 +108,7 @@ Si el cliente solicita los ganadores pero aun no terminamos de contar, pasamos a
 
 La cantidad de agencias es constante y configurable
 
-
+Tuve que configurar el generador-compose.py para que el servidor sepa entre sus variables de entorno la cantidad de conexiones de clientes a esperar. 
 
 # TP0: Docker + Comunicaciones + Concurrencia
 

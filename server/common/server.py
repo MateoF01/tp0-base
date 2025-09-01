@@ -8,11 +8,12 @@ from .message_types import HELLO, BET_BATCH, END, GET_WINNERS, ACK, ERR, WINNERS
 
 
 class Server:
-    def __init__(self, port, listen_backlog):
+    def __init__(self, port, listen_backlog, expected):
         # Initialize server socket
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
+        self._expected_agencies = expected
 
         self._running = True
 
@@ -99,7 +100,7 @@ class Server:
                             continue
 
                         # ¿ya todos terminaron?
-                        if all(self._agencies_finished.values()):
+                        if self.__all_finished():
                             # Más adelante: computar y responder ganadores
                             logging.info(
                                 f"action: get_winners | result: ready | agency: {agency_id}"
@@ -166,3 +167,12 @@ class Server:
         self._pending_gets.clear()
 
         logging.info("action: sorteo | result: success")
+
+    def __all_finished(self) -> bool:
+        """
+        Devuelve True si tenemos exactamente _expected_agencies registradas
+        y todas marcaron END.
+        """
+        if len(self._agencies_finished) < self._expected_agencies:
+            return False
+        return all(self._agencies_finished.values())

@@ -41,6 +41,8 @@ def main():
     port = config_params["port"]
     listen_backlog = config_params["listen_backlog"]
 
+    expected_agencies = int(os.getenv("EXPECTED_AGENCIES", "1"))
+
     initialize_log(logging_level)
 
     # Log config parameters at the beginning of the program to verify the configuration
@@ -49,7 +51,7 @@ def main():
                   f"listen_backlog: {listen_backlog} | logging_level: {logging_level}")
 
     # Initialize server and start server loop
-    server = Server(port, listen_backlog)
+    server = Server(port, listen_backlog, expected_agencies)
 
     #Seteo el comportamiento esperado para la señal SIGTERM
     def handle_sigterm(signum, frame):
