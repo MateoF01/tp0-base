@@ -77,7 +77,6 @@ Ejemplo: si deben leerse 39 bytes:
 
 [00000039]3|Santiago|Lorca|30904465|1999-03-17|7574
 
-
 De esta forma evitamos los fenómenos de *short read* y *short write*, porque se indica exactamente el tamaño del mensaje.
 
 Cada vez que se envía un mensaje con una apuesta, el servidor responde con un mensaje de confirmación (ACK).  
@@ -89,7 +88,7 @@ Para el desarrollo de este ejercicio, planteé un esquema con tres módulos prin
 - `serializer`: encargado de parsear el payload al enviar y recibir
 - entidades `cliente` y `servidor`: utilizan el protocolo para comunicarse.
 
-Cabe aclarar que con el pasar de los ejercicios el protocolo será modificado para tener un mayor alcance.
+Cabe aclarar que con el pasar de los ejercicios el protocolo será modificado para tener un mayor alcance (necesario en los requerimientos posteriores).
 
 # TP0: Docker + Comunicaciones + Concurrencia
 
