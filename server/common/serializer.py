@@ -1,22 +1,6 @@
-import struct
 from common.utils import Bet
 
 DELIM = "|"
-
-def serialize_bet(bet: Bet) -> bytes:
-
-    payload = DELIM.join([
-        str(bet.agency),
-        bet.first_name,
-        bet.last_name,
-        bet.document,
-        str(bet.birthdate),
-        str(bet.number)
-    ])
-    data = payload.encode("utf-8")
-    length = struct.pack(">I", len(data)) 
-    return length + data
-
 
 def deserialize_bet(data: bytes) -> Bet:
 
