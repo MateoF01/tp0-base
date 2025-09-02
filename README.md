@@ -105,7 +105,6 @@ Ejemplo:
 [00000041]5|Lucia|Perez|28765432|1995-07-21|1234
 [00000040]2|Martin|Garcia|29888765|1998-02-11|9876
 
-
 Además, modifiqué el `generador-compose.py` para que el cliente no lea más las apuestas desde variables de entorno, sino que las construya a partir del CSV inyectado mediante volúmenes.  
 También parametrizé la ubicación del archivo en el `config.yaml`, de forma de no dejarla definida directamente en el código.  
 En el mismo archivo de configuración se incluye la clave `batch.maxAmount`, que controla la cantidad máxima de apuestas por batch. Ajusté el valor por defecto de forma que los paquetes no superen los 8kB.
