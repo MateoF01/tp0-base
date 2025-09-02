@@ -43,15 +43,15 @@ chmod +x validar-echo-server.sh
 
 ## Ejercicio 4
 
-En este ejercicio basicamente plantean la necesidad de termianr la aplicacion de forma graceful al recibir la signal SIGTERM.
+En este ejercicio plantean la necesidad de terminar la aplicación de forma *graceful* al recibir la señal SIGTERM.
 
-El flag -t en docker compose down basicamente permite indicar la cantidad de segundos que le damos al sistema para terminar, antes de forzar el cierre.
+El flag `-t` en `docker compose down` indica la cantidad de segundos que se le da al sistema para finalizar antes de forzar el cierre.
 
-En la nueva implementación, se agregó la posibilidad de hacer un manejo de la señal SIGTERM para que al recibirla, los sockets se cierren correctamente antes de apagar el servidor.
-Ahora mismo el servidor corre en un loop infinito, al cual le agregué la flag de running. Cuando el servidor está corriendo, se queda bloqueado en el accept() a la espera de un cliente. Si mientras está bloqueado llega la singal SIGTERM, se llamará al close, lo cual cierra el socket, pero como el hilo principal seguía bloqueado en el accept() al intentar usar un socket que ya no existe, devolverá un OSError, el cual atrapamos en el metodo run. Y si al flag de running es false, sabemos que es un cierre interncional, por lo que podemos ignorar el error. 
+En la nueva implementación, se agregó el manejo de la señal SIGTERM para que, al recibirla, los sockets se cierren correctamente antes de apagar el servidor.  
+Actualmente el servidor corre en un loop infinito controlado por una flag `running`. Mientras el servidor está corriendo, queda bloqueado en la llamada a `accept()` esperando clientes.  
+Si durante ese bloqueo llega la señal SIGTERM, se invoca a `close()`, lo que cierra el socket de escucha. Como el hilo principal seguía en `accept()` sobre un socket ya cerrado, se lanza un `OSError`. Este error es capturado en el método `run` y, si la flag `running` está en `False`, se reconoce que es un cierre intencional y se ignora el error.
 
-En el lado del cliente, por la infraestructura de go, se debe crear un canal del tipo os.Signal para recibir las señales del sistema operativo.
-Además ahora mismo, se cierra la conexion al final del loop, pero puede que el cliente esté en medio de una iteracion cuando llegue SIGTERM, enonces se agregó el metodo close() al cliente
+En el cliente, por la infraestructura de Go, se creó un canal del tipo `os.Signal` para recibir señales del sistema operativo. Además, aunque la conexión ya se cerraba al final del loop, podría ocurrir que el cliente esté en medio de una iteración cuando llegue SIGTERM. Para resolverlo, se agregó un método `close()` al cliente que garantiza el cierre correcto del socket antes de terminar el proceso.
 
 # TP0: Docker + Comunicaciones + Concurrencia
 
