@@ -2,7 +2,6 @@ package common
 
 import (
     "fmt"
-    "strings"
 )
 
 func SerializeBet(b Bet) []byte {

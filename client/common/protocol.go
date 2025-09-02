@@ -4,7 +4,6 @@ import (
     "encoding/binary"
     "io"
     "net"
-	"fmt"
 )
 
 // Envía un Bet con protocolo length-prefixed
