@@ -90,15 +90,27 @@ Para el desarrollo de este ejercicio, planteé un esquema con tres módulos prin
 
 Cabe aclarar que con el pasar de los ejercicios el protocolo será modificado para tener un mayor alcance (necesario en los requerimientos posteriores).
 
-# Ejercicio 6
+## Ejercicio 6
 
-Para implementar la funcionalidad modifico el protocolo. Se adaptara de la siguiente forma: Los primeros 4 byte del mensaje indicará la cantidad de apuestas (Permitiendo de esta forma 4 294 967 295 de apuestas). Luego cada apuesta dentro de ese mensaje mantiene el formato propuesto anteriromente. Primero indicando la longitud del mensaje, y luego todo el string con la información.
+Para implementar la funcionalidad modifiqué el protocolo.  
+Se adaptó de la siguiente forma: los primeros 4 bytes del mensaje indican la cantidad de apuestas dentro del batch (lo que permitiría hasta 4.294.967.295 apuestas).  
+Luego, cada apuesta mantiene el formato propuesto anteriormente: primero un encabezado con la longitud de la apuesta y luego el string con la información.
 
-De esta forma podemos saber siempre que se han de procesar N apuestas, y que cada apuesta tiene una longitud X.
+De esta forma, el receptor siempre sabe que debe procesar N apuestas, y cada apuesta tiene una longitud X, lo que evita problemas de short read y short write.
 
-Además debí modificar el generador-compose.py, para que el cliente no lea mas la apuesta desde las variables de entorno, y las contruya desde el CSV inyectado con volumens.
-Además noté que lo mejor, es también pasar la ubicacion del archivo en el yaml, y no tenerlo directamente definido en el codigo. Así que agregue esa posibilidad tanto para el csv de cada agencia como para la configuración del client. 
-Tambíen cabe aclarar, que la cantidad de apuestas en un batch, llega definida en el archivo de configuración, donde se indica el maxAmount 
+Ejemplo:
+
+[00000003] # cantidad de apuestas en el batch
+[00000039]3|Santiago|Lorca|30904465|1999-03-17|7574
+[00000041]5|Lucia|Perez|28765432|1995-07-21|1234
+[00000040]2|Martin|Garcia|29888765|1998-02-11|9876
+
+Además, modifiqué el `generador-compose.py` para que el cliente no lea más las apuestas desde variables de entorno, sino que las construya a partir del CSV inyectado mediante volúmenes.  
+También parametrizé la ubicación del archivo en el `config.yaml`, de forma de no dejarla definida directamente en el código.  
+En el mismo archivo de configuración se incluye la clave `batch.maxAmount`, que controla la cantidad máxima de apuestas por batch. Ajusté el valor por defecto de forma que los paquetes no superen los 8kB.
+
+Finalmente, agregué la posibilidad de que el servidor responda con un mensaje de error en caso de detectar un error con alguna de las apuestas. El cliente, al recibir el ACK, deserializa el payload para identificar si contiene `OK` o `ERR`, y en base a eso determina si la operación fue exitosa.  
+El servidor loguea `action: apuesta_recibida | result: success | cantidad: N` si todas las apuestas fueron procesadas correctamente, o `action: apuesta_recibida | result: fail | cantidad: N` en caso de error.
 
 # Ejercicio 7
 
