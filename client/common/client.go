@@ -59,20 +59,20 @@ func (c *Client) Close() {
 // StartClientLoop conecta, envía hello, luego todas las bets en batches,
 // después manda FIN y finalmente GET_WINNERS.
 func (c *Client) StartClientLoop() {
-	// Cargo apuestas desde CSV
+	// Load bets
 	bets, err := LoadBetsFromCSV(c.config.DatasetPath, c.config.ID)
 	if err != nil {
 		log.Criticalf("action: load_bets | result: fail | error: %v", err)
 		return
 	}
 
-	// Creo el socket una sola vez
+	// Connect
 	if err := c.createClientSocket(); err != nil {
 		return
 	}
 	defer c.conn.Close()
 
-	// === 2) BETS en batches ===
+	// === 1) Send bets in batches ===
 	for i := 0; i < len(bets); i += c.config.BatchMaxAmount {
 		end := i + c.config.BatchMaxAmount
 		if end > len(bets) {
@@ -80,13 +80,11 @@ func (c *Client) StartClientLoop() {
 		}
 		batch := bets[i:end]
 
-		// Envío batch
 		if err := SendBets(c.conn, batch); err != nil {
 			log.Errorf("action: send_bets | result: fail | error: %v", err)
 			return
 		}
 
-		// Recibo ACK
 		isOk, betsCount, err := ReceiveAck(c.conn)
 		if err != nil || !isOk {
 			log.Errorf("action: receive_ack | result: fail | error: %v", err)
@@ -96,65 +94,25 @@ func (c *Client) StartClientLoop() {
 		log.Infof("action: batch_enviado | result: success | cantidad: %d | ack: ACK",
 			betsCount,
 		)
-
-		time.Sleep(c.config.LoopPeriod)
 	}
 
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
 
-	// === 3) END ===
+	// === 2) Send END ===
 	if err := SendEnd(c.conn, c.config.ID); err != nil {
 		log.Errorf("action: send_end | result: fail | error: %v", err)
 		return
 	}
 	log.Infof("action: send_end | result: success | client_id: %v", c.config.ID)
 
-	// Cierro la conexión porque ya terminé de enviar apuestas
-	c.conn.Close()
-	c.conn = nil
-
-	// === 4) Intentamos GET WINNERS con reintentos ===
-	attempt := 0
-	for {
-		winners, err := c.TryGetWinners()
-		if err == nil {
-			log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %d",
-				len(winners),
-			)
-			break
-		}
-
-		attempt++
-		log.Warningf("action: consulta_ganadores | result: fail | attempt: %d | error: %v",
-			attempt, err,
-		)
-
-		// backoff lineal: 1s, 2s, 3s, ...
-		time.Sleep(time.Duration(attempt) * time.Second)
+	// === 3) Wait for winners directly ===
+	winners, err := ReceiveWinners(c.conn)
+	if err != nil {
+		log.Errorf("action: receive_winners | result: fail | error: %v", err)
+		return
 	}
 
-
-}
-
-// TryGetWinners intenta conectarse, pedir ganadores y recibirlos.
-func (c *Client) TryGetWinners() ([]string, error) {
-
-    // Nueva conexión cada intento
-    if err := c.createClientSocket(); err != nil {
-        return nil, err
-    }
-    defer c.conn.Close()
-
-    // Envío GET_WINNERS
-    if err := SendGetWinners(c.conn, c.config.ID); err != nil {
-        return nil, err
-    }
-
-    winners, err := ReceiveWinners(c.conn)
-
-    if err != nil {
-        return nil, err
-    }
-
-    return winners, nil
+	log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %d",
+		len(winners),
+	)
 }

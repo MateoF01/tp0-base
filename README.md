@@ -101,6 +101,15 @@ Ademas se debieron realizar otros cambios, para poder ordenar el flujo. En prime
 
 También se actualizó el generador-compose.py para que el servidor sepa entre sus variables de entorno la cantidad de conexiones de clientes a esperar. 
 
+# Ejercicio 8
+
+Este ejercicio simplifica mucho el comportamiento, ya que al tener un hilo para aceptar las conexiones, y luego lanzar un hilo por cada cliente nuevo que se conecte. De esta forma se podrán procesar los mensajes de forma concurrente. Para sincrionzar a los clientes que deben esperar a que todos terminen para obtener los ganadores, utilicé una barrera, ya que creo que es el caso perfecto para utilizar este mecanismo de sincrinizacion, en el cual solo se puede avanzar cuando todos estan en el mismo punto. Una vez llegado todos los clientes a la barrera, se realiza el calculo de computo, y a partir de ese momento, todos los clientes querrán acceder al recurso compartido donde se guardan los ganadores. En este punto simplemente es una operación de lectura entonces no requiero lockear el acceso. 
+
+Solo se deberá hacer el lock al momento de hacer el computo de ganadores, para que no se genere una race condition. 
+
+Además con esta nueva implementación el cliente no necesita cerrar su conexion y volver a conectarse realizando un poll. Ahora el servdor puede manejar las conexiones activas por separado y responder inmediatamente despues de realizar el calculo. Incluso no necesitamos mas la peticion de GET WINNERS, porque podemos sincronizar el flujo perfectamente para que despues de recibir todos los ENDs el servidor responda con los ganadores.
+
+
 # TP0: Docker + Comunicaciones + Concurrencia
 
 En el presente repositorio se provee un esqueleto básico de cliente/servidor, en donde todas las dependencias del mismo se encuentran encapsuladas en containers. Los alumnos deberán resolver una guía de ejercicios incrementales, teniendo en cuenta las condiciones de entrega descritas al final de este enunciado.
