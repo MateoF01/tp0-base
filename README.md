@@ -59,26 +59,36 @@ En el cliente, por la infraestructura de Go, se creó un canal del tipo `os.Sign
 
 ## Ejercicio 5
 
-En primer lugar modifqué el generador-compose.py para poder setar las variables de enorno que me pide, para cada cliete, generando así una apuesta ficticia. 
+En primer lugar modifiqué el `generador-compose.py` para poder setear las variables de entorno que me pide, para cada cliente, generando así una apuesta ficticia. 
 
-El protocolo que planteo es el siguiente. Debo comunicar los datos de cada apuesta que se realiza en la agencia, hacia la loteria nacional. Para esto debo informar:
+El protocolo que planteo es el siguiente: debo comunicar los datos de cada apuesta que se realiza en la agencia hacia la Lotería Nacional. Para esto informo:
 
-- "ID AGENCIA"
-- "NOMBRE"
-- "APELLIDO"
-- "DOCUMENTO"
-- "NACIMIENTO"
-- "NUMERO"
+- ID AGENCIA
+- NOMBRE
+- APELLIDO
+- DOCUMENTO
+- NACIMIENTO
+- NUMERO
 
-En pos de mantener simple el protocolo, propongo enviar los mensajes con el siguiente formato: Un encavezado de 4 bytes (uint32) indicando la logitud del mensaje y un payload que contenga un string con todos los datos de la apuesta divididos por una |
+Para mantener simple el protocolo, envío los mensajes con el siguiente formato:  
+Un encabezado de 4 bytes (uint32) indicando la longitud del mensaje y un payload que contiene un string con todos los datos de la apuesta divididos por `|`.
 
-Por ejemplo, aquí se indican que deben leerse 39 bytes:
+Ejemplo: si deben leerse 39 bytes:
 
 [00000039]3|Santiago|Lorca|30904465|1999-03-17|7574
 
-De esta forma podemos evitar los fenómenos de short read y short write, porque indicamos exactamente el tamaño del mensaje. 
+De esta forma evitamos los fenómenos de *short read* y *short write*, porque se indica exactamente el tamaño del mensaje.
 
-Además, cada vez que se envía un mensaje con una apuesta se espera recibir el ACK por parte del servidor, confirmando la recepcción. 
+Cada vez que se envía un mensaje con una apuesta, el servidor responde con un mensaje de confirmación (ACK).  
+Si bien TCP ya garantiza la entrega de los bytes, este ACK a nivel de aplicación es necesario para confirmar que la apuesta fue efectivamente procesada y almacenada.  
+De esta manera, el cliente puede loguear `action: apuesta_enviada | result: success | dni: ${DNI} | numero: ${NUMERO}` solo cuando el servidor confirme el guardado.
+
+Para el desarrollo de este ejercicio, planteé un esquema con tres módulos principales en cada nodo:
+- `protocolo`: funciones de envío y recepción de mensajes
+- `serializer`: encargado de parsear el payload al enviar y recibir
+- entidades `cliente` y `servidor`: utilizan el protocolo para comunicarse.
+
+Cabe aclarar que con el pasar de los ejercicios el protocolo será modificado para tener un mayor alcance (necesario en los requerimientos posteriores).
 
 
 # Ejercicio 6
