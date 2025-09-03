@@ -6,7 +6,7 @@ from common.protocol import (
     recv_message_type, recv_agency_id
 )
 from common.utils import store_bets, load_bets, has_won
-from .message_types import BET_BATCH, END, WINNERS
+from .message_types import BET_BATCH, END
 
 
 class Server:
@@ -18,12 +18,13 @@ class Server:
         self._expected_agencies = expected
         self._running = True
 
-        # sincronización
-        self.barrier = threading.Barrier(expected)
+        # sincronización manual
+        self._end_count = 0
+        self._cond = threading.Condition()
         self._winners_by_agency = {}
-        self._compute_lock = threading.Lock()  # para no computar dos veces
+        self._bets_lock = threading.Lock()
 
-        # lista de hilos activos
+
         self._threads = []
 
     def run(self):
@@ -42,7 +43,6 @@ class Server:
                         break
                     raise
         finally:
-            # esperar a que terminen todos los hilos
             for t in self._threads:
                 t.join()
 
@@ -64,10 +64,12 @@ class Server:
                     bets = recv_bets(client_sock)
                     if not bets:
                         break
-
                     agency_id = bets[0].agency
                     try:
-                        store_bets(bets)
+                        #Seccion critica GUARDA BETS
+                        with self._bets_lock:
+                            store_bets(bets)
+
                         logging.info(
                             f"action: apuesta_recibida | result: success | cantidad: {len(bets)} | agency: {agency_id}"
                         )
@@ -82,21 +84,30 @@ class Server:
                     agency_id = recv_agency_id(client_sock)
                     logging.info(f"action: end | result: success | agency: {agency_id}")
 
-                    # sincronizamos a todos los clientes
-                    self.barrier.wait()
+                    #El condition es muy bueno
+                    #Cuando un hilo llega a esta seccion toma el lock interno del condition
+                    #En ese momento puede sumar al contador y nadie mas podra entrar a la SC
+                    #Como ve que la condicion no se cumple se pone en estado wait y libera el lock
+                    #Y asi hasta que eventualmente llega a cumplirse la condicion
+                    #Cuando un hilo entra a la seccion y la condicion se cumple el realizará
+                    #el computo y notificará a todos de que ya pueden avanzar a enviar la respuesta
 
-                    # solo el primero que entra computa (protección con lock)
-                    with self._compute_lock:
-                        if len(self._winners_by_agency) == 0:
+                    with self._cond:
+                        self._end_count += 1
+                        
+                        if self._end_count == self._expected_agencies:
                             self._compute_winners()
+                            self._cond.notify_all()  # despertar a todos
+                        else:
+                            self._cond.wait()
 
-                    # cuando todos pasan la barrera → ya hay ganadores
                     winners = self._winners_by_agency.get(int(agency_id), [])
                     send_winners(client_sock, winners)
                     logging.info(
                         f"action: send_winners | result: success | agency: {agency_id} | cantidad: {len(winners)}"
                     )
                     break
+
         except Exception as e:
             logging.error(f"action: handle_client | result: fail | error: {e}")
         finally:
@@ -113,10 +124,8 @@ class Server:
 
     def _compute_winners(self):
         winners_by_agency = {}
-
         for bet in load_bets():
             if has_won(bet):
                 winners_by_agency.setdefault(int(bet.agency), []).append(bet.document)
-
         self._winners_by_agency = winners_by_agency
         logging.info(f"action: sorteo | result: success | winners={self._winners_by_agency}")
