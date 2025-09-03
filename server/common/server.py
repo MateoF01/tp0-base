@@ -1,11 +1,12 @@
 import socket
 import logging
+import threading
 from common.protocol import (
     recv_bets, send_ack, send_error, send_winners,
-    recv_message_type, recv_payload, recv_agency_id
+    recv_message_type, recv_agency_id
 )
 from common.utils import store_bets, load_bets, has_won
-from .message_types import HELLO, BET_BATCH, END, WINNERS, GET_WINNERS
+from .message_types import BET_BATCH, END, WINNERS
 
 
 class Server:
@@ -14,18 +15,26 @@ class Server:
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
-        self._expected_agencies = expected
 
+        self._expected_agencies = expected
         self._running = True
 
-        self._agencies_finished = 0    # agency_id -> bool
-        self._winners_by_agency = {}    # agency_id -> [dni ganadores]
+        # sincronización
+        self.barrier = threading.Barrier(expected)
+        self._winners_by_agency = {}
+        self._compute_lock = threading.Lock()  # para no computar dos veces
 
     def run(self):
         while self._running:
             try:
                 client_sock = self.__accept_new_connection()
-                self.__handle_client_connection(client_sock)
+                # lanzo un hilo por cliente
+                t = threading.Thread(
+                    target=self.__handle_client_connection,
+                    args=(client_sock,),
+                    daemon=True
+                )
+                t.start()
             except OSError as e:
                 if not self._running:
                     break
@@ -39,6 +48,7 @@ class Server:
 
     def __handle_client_connection(self, client_sock):
         try:
+            agency_id = None
             while True:
                 msg_type = recv_message_type(client_sock)
                 if msg_type is None:
@@ -63,28 +73,23 @@ class Server:
                         send_error(client_sock, len(bets))
 
                 elif msg_type == END:
-                    self._agencies_finished += 1
                     agency_id = recv_agency_id(client_sock)
                     logging.info(f"action: end | result: success | agency: {agency_id}")
-                    break
 
-                elif msg_type == GET_WINNERS:
-                    agency_id = recv_agency_id(client_sock)
-                    logging.info(
-                        f"action: get_winners | result: in_progress | agency: {agency_id}"
-                    )
+                    # sincronizamos a todos los clientes
+                    self.barrier.wait()
 
-                    if self._agencies_finished == self._expected_agencies:
+                    # solo el primero que entra computa (protección con lock)
+                    with self._compute_lock:
                         if len(self._winners_by_agency) == 0:
-                            # si todavía no computamos, computamos
                             self._compute_winners()
 
-                        winners = self._winners_by_agency.get(int(agency_id), [])
-
-                        send_winners(client_sock, winners)
-                        logging.info(
-                            f"action: get_winners | result: success | agency: {agency_id}"
-                        )
+                    # cuando todos pasan la barrera → ya hay ganadores
+                    winners = self._winners_by_agency.get(int(agency_id), [])
+                    send_winners(client_sock, winners)
+                    logging.info(
+                        f"action: send_winners | result: success | agency: {agency_id} | cantidad: {len(winners)}"
+                    )
                     break
 
         except Exception as e:
@@ -94,7 +99,6 @@ class Server:
                 client_sock.close()
             except Exception:
                 pass
-
 
     def __accept_new_connection(self):
         logging.info("action: accept_connections | result: in_progress")
@@ -107,13 +111,8 @@ class Server:
 
         for bet in load_bets():
             if has_won(bet):
-                winners_by_agency.setdefault(bet.agency, []).append(bet.document)
+                winners_by_agency.setdefault(int(bet.agency), []).append(bet.document)
 
         self._winners_by_agency = winners_by_agency
 
-        logging.info(f"action: sorteo | result: success")
-        logging.info(f"winners by agency {self._winners_by_agency}")
-
-    
-
-  
+        logging.info(f"action: sorteo | result: success | winners={self._winners_by_agency}")
