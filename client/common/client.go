@@ -4,13 +4,15 @@ import (
 	"net"
 	"time"
 	"github.com/op/go-logging"
+	"os"
+	"encoding/csv"
 )
 
 var log = logging.MustGetLogger("log")
 
 // ClientConfig Configuration used by the client
 type ClientConfig struct {
-	ID            int
+	ID            string
 	ServerAddress string
 	LoopAmount    int
 	LoopPeriod    time.Duration
@@ -55,38 +57,43 @@ func (c *Client) Close() {
         c.conn.Close()
     }
 }
-
-// StartClientLoop conecta, envía hello, luego todas las bets en batches,
-// después manda FIN y finalmente GET_WINNERS.
+// StartClientLoop conecta, envía todas las bets en batches,
+// después manda END y finalmente consulta GET_WINNERS con reintentos.
 func (c *Client) StartClientLoop() {
-	// Cargo apuestas desde CSV
-	bets, err := LoadBetsFromCSV(c.config.DatasetPath, c.config.ID)
+	// Abrir archivo CSV
+	file, err := os.Open(c.config.DatasetPath)
 	if err != nil {
-		log.Criticalf("action: load_bets | result: fail | error: %v", err)
+		log.Criticalf("action: open_dataset | result: fail | error: %v", err)
 		return
 	}
+	defer file.Close()
 
-	// Creo el socket una sola vez
+	reader := csv.NewReader(file)
+
+	// Crear socket una sola vez para enviar apuestas
 	if err := c.createClientSocket(); err != nil {
 		return
 	}
 	defer c.conn.Close()
 
-	// === 2) BETS en batches ===
-	for i := 0; i < len(bets); i += c.config.BatchMaxAmount {
-		end := i + c.config.BatchMaxAmount
-		if end > len(bets) {
-			end = len(bets)
+	for {
+		// Leer siguiente batch
+		batch, err := LoadBetsBatch(reader, c.config.ID, c.config.BatchMaxAmount)
+		if err != nil {
+			log.Errorf("action: load_bets | result: fail | error: %v", err)
+			return
 		}
-		batch := bets[i:end]
+		if len(batch) == 0 {
+			break // no hay más apuestas → fin
+		}
 
-		// Envío batch
+		// Enviar batch
 		if err := SendBets(c.conn, batch); err != nil {
 			log.Errorf("action: send_bets | result: fail | error: %v", err)
 			return
 		}
 
-		// Recibo ACK
+		// Esperar ACK
 		isOk, betsCount, err := ReceiveAck(c.conn)
 		if err != nil || !isOk {
 			log.Errorf("action: receive_ack | result: fail | error: %v", err)
@@ -132,29 +139,26 @@ func (c *Client) StartClientLoop() {
 		// backoff lineal: 1s, 2s, 3s, ...
 		time.Sleep(time.Duration(attempt) * time.Second)
 	}
-
-
 }
 
 // TryGetWinners intenta conectarse, pedir ganadores y recibirlos.
 func (c *Client) TryGetWinners() ([]string, error) {
+	// Nueva conexión cada intento
+	if err := c.createClientSocket(); err != nil {
+		return nil, err
+	}
+	defer c.conn.Close()
 
-    // Nueva conexión cada intento
-    if err := c.createClientSocket(); err != nil {
-        return nil, err
-    }
-    defer c.conn.Close()
+	// Envío GET_WINNERS
+	if err := SendGetWinners(c.conn, c.config.ID); err != nil {
+		return nil, err
+	}
 
-    // Envío GET_WINNERS
-    if err := SendGetWinners(c.conn, c.config.ID); err != nil {
-        return nil, err
-    }
+	// Recibo lista de ganadores
+	winners, err := ReceiveWinners(c.conn)
+	if err != nil {
+		return nil, err
+	}
 
-    winners, err := ReceiveWinners(c.conn)
-
-    if err != nil {
-        return nil, err
-    }
-
-    return winners, nil
+	return winners, nil
 }

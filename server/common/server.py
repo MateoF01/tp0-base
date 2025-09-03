@@ -45,57 +45,55 @@ class Server:
                     break
 
                 if msg_type == BET_BATCH:
-                    payload = recv_payload(client_sock)
-                    agency_id, bets = recv_bets(payload)
+                    bets = recv_bets(client_sock)
                     if not bets:
                         break
+
+                    agency_id = bets[0].agency  # todas las apuestas del batch son de la misma agencia
                     try:
                         store_bets(bets)
                         logging.info(
                             f"action: apuesta_recibida | result: success | cantidad: {len(bets)} | agency: {agency_id}"
                         )
-                        send_ack(client_sock, f"OK|{len(bets)}")
+                        send_ack(client_sock, len(bets))
                     except Exception as e:
                         logging.error(
                             f"action: apuesta_recibida | result: fail | cantidad: {len(bets)} | error: {e}"
                         )
-                        send_error(client_sock, f"ERR|{len(bets)}")
+                        send_error(client_sock, len(bets))
 
                 elif msg_type == END:
                     self._agencies_finished += 1
-                    payload = recv_payload(client_sock)
-                    agency_id = recv_agency_id(payload)
-
+                    agency_id = recv_agency_id(client_sock)
                     logging.info(f"action: end | result: success | agency: {agency_id}")
                     break
 
-
-
                 elif msg_type == GET_WINNERS:
-                    payload = recv_payload(client_sock)
-                    agency_id = recv_agency_id(payload)
-
-                    logging.info(f"action: get_winners | result: in_progress | agency: {agency_id}")
-                    
+                    agency_id = recv_agency_id(client_sock)
+                    logging.info(
+                        f"action: get_winners | result: in_progress | agency: {agency_id}"
+                    )
 
                     if self._agencies_finished == self._expected_agencies:
-                        if(len(self._winners_by_agency) == 0 ): #Si todavia no computamos, computamos
-                            self._compute_winners()                        
+                        if len(self._winners_by_agency) == 0:
+                            # si todavía no computamos, computamos
+                            self._compute_winners()
 
-                        winners = self._winners_by_agency.get(agency_id, []) # si no tiene ganadores: lista vacia
-                        send_winners(client_sock, winners, WINNERS)
-                        logging.info(f"action: get_winners | result: success | agency: {agency_id}")
-
+                        winners = self._winners_by_agency.get(agency_id, [])
+                        send_winners(client_sock, winners)
+                        logging.info(
+                            f"action: get_winners | result: success | agency: {agency_id}"
+                        )
                     break
 
         except Exception as e:
             logging.error(f"action: handle_client | result: fail | error: {e}")
         finally:
-            # si por algún motivo salimos del loop antes
             try:
                 client_sock.close()
             except Exception:
                 pass
+
 
     def __accept_new_connection(self):
         logging.info("action: accept_connections | result: in_progress")

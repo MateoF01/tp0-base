@@ -1,96 +1,92 @@
-import struct
-from .serializer import deserialize_bet
+import socket
+from .serializer import (
+    deserialize_bet,
+    serialize_ack,
+    serialize_error,
+    serialize_agency_id,
+    deserialize_agency_id,
+    serialize_winners,
+    int_to_big_endian_bytes,
+    big_endian_bytes_to_int,
+)
+from .message_types import ACK, ERR, WINNERS
 
 
-def recv_message_type(sock) -> int:
-    """
-    Lee solo el byte de tipo de mensaje.
-    """
-    raw_type = sock.recv(1)
+MSG_TYPE_BYTES = 1
+MSG_LEN_BYTES = 4
+
+def recv_message_type(sock: socket.socket) -> int:
+    raw_type = sock.recv(MSG_TYPE_BYTES)
     if not raw_type:
         return None
     return raw_type[0]
 
 
-def recv_payload(sock) -> bytes:
-    raw_len = sock.recv(4)
-    if not raw_len or len(raw_len) < 4:
-        return b""
-    length = struct.unpack(">I", raw_len)[0]
+def recv_payload(sock: socket.socket) -> bytes:
+    # Leo longitud del payload
+    raw_len = sock.recv(MSG_LEN_BYTES)
+    if not raw_len:
+        return None
+    length = big_endian_bytes_to_int(raw_len)
 
+    # Leo payload completo
     data = b""
     while len(data) < length:
-        chunk = sock.recv(length - len(data))
-        if not chunk:
-            return b""
-        data += chunk
+        packet = sock.recv(length - len(data))
+        if not packet:
+            return None
+        data += packet
+
     return data
 
 
-
-def recv_bets(payload: bytes):
-    """
-    Decodifica un payload de tipo BET_BATCH.
-    Formato:
-      [uint32 N]
-      N veces: [uint32 len][bet_payload]
-    """
-    if not payload:
-        return []
-
+def recv_bets(sock: socket.socket):
     # cantidad de apuestas
-    n = struct.unpack(">I", payload[:4])[0]
-    offset = 4
+    raw_n = sock.recv(MSG_LEN_BYTES)
+    if not raw_n:
+        return []
+    n = big_endian_bytes_to_int(raw_n)
 
     bets = []
     for _ in range(n):
-        # longitud del bet
-        length = struct.unpack(">I", payload[offset:offset+4])[0]
-        offset += 4
-
-        data = payload[offset:offset+length]
-        offset += length
-
+        data = recv_payload(sock)
+        if not data:
+            return []
         bet = deserialize_bet(data)
         bets.append(bet)
 
-    return bets[0].agency, bets
+    return bets
 
 
-def send_message(sock, msg_type: int, payload: bytes):
-    """
-    Envia un mensaje con framing:
-      [1 byte tipo][4 bytes length][payload]
-    """
-    header = struct.pack(">BI", msg_type, len(payload))
+def recv_agency_id(sock: socket.socket) -> str:
+    data = recv_payload(sock)
+    if not data:
+        return None
+    return deserialize_agency_id(data)
+
+def send_message(sock: socket.socket, msg_type: int, payload: bytes):
+    header = bytes([msg_type]) + int_to_big_endian_bytes(len(payload))
     sock.sendall(header + payload)
 
+def send_ack(sock: socket.socket, count: int):
+    payload = serialize_ack(count)
+    send_message(sock, ACK, payload)   # ACK es una constante con el código de mensaje
 
-def send_ack(sock, msg: str):
-    data = msg.encode("utf-8")
-    length = struct.pack(">I", len(data))
-    sock.sendall(length + data)
+def send_error(sock: socket.socket, count: int):
+    payload = serialize_error(count)
+    send_message(sock, ERR, payload)   # ERR es una constante con el código de mensaje
 
+def send_winners(sock: socket.socket, winners: list[str]):
+    # armo el mensaje completo
+    msg = bytes([WINNERS])
 
-def send_error(sock, msg: str):
-    data = msg.encode("utf-8")
-    length = struct.pack(">I", len(data))
-    sock.sendall(length + data)
+    # cantidad de ganadores
+    msg += int_to_big_endian_bytes(len(winners))
 
-def recv_agency_id(payload: bytes) -> int:
-
-    if not payload:
-        return None
-    try:
-        return int(payload.decode("utf-8").strip())
-    except ValueError:
-        return None
-
-def send_winners(sock, winners: list[str], msg_type: int = 3):
-    payload = struct.pack(">I", len(winners))  # cantidad N
-
+    # cada ganador
     for w in winners:
         data = w.encode("utf-8")
-        payload += struct.pack(">I", len(data)) + data
+        msg += int_to_big_endian_bytes(len(data))
+        msg += data
 
-    send_message(sock, msg_type, payload)
+    sock.sendall(msg)
