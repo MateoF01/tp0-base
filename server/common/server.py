@@ -44,9 +44,6 @@ class Server:
     def __handle_client_connection(self, client_sock):
         """
         Read message from a specific client socket and closes the socket
-
-        If a problem arises in the communication with the client, the
-        client socket will also be closed
         """
         try:
             while True:
@@ -58,16 +55,17 @@ class Server:
                     try:
                         store_bets(bets)
                         logging.info(f"action: apuesta_recibida | result: success | cantidad: {len(bets)}")
-                        send_ack(client_sock, f"OK|{len(bets)}")
+                        send_ack(client_sock, len(bets))
                     except Exception as e:
                         logging.error(f"action: apuesta_recibida | result: fail | cantidad: {len(bets)} | error: {e}")
-                        send_error(client_sock, f"ERR|{len(bets)}")
+                        send_error(client_sock, len(bets))
 
                 except Exception as e:
                     logging.error(f"action: handle_client | result: fail | error: {e}")
                     break
         finally:
             client_sock.close()
+
 
     def __accept_new_connection(self):
         """
