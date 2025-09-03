@@ -11,7 +11,6 @@ from .message_types import BET_BATCH, END, WINNERS
 
 class Server:
     def __init__(self, port, listen_backlog, expected):
-        # Initialize server socket
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
@@ -24,21 +23,28 @@ class Server:
         self._winners_by_agency = {}
         self._compute_lock = threading.Lock()  # para no computar dos veces
 
+        # lista de hilos activos
+        self._threads = []
+
     def run(self):
-        while self._running:
-            try:
-                client_sock = self.__accept_new_connection()
-                # lanzo un hilo por cliente
-                t = threading.Thread(
-                    target=self.__handle_client_connection,
-                    args=(client_sock,),
-                    daemon=True
-                )
-                t.start()
-            except OSError as e:
-                if not self._running:
-                    break
-                raise
+        try:
+            while self._running:
+                try:
+                    client_sock = self.__accept_new_connection()
+                    t = threading.Thread(
+                        target=self.__handle_client_connection,
+                        args=(client_sock,)
+                    )
+                    t.start()
+                    self._threads.append(t)
+                except OSError:
+                    if not self._running:
+                        break
+                    raise
+        finally:
+            # esperar a que terminen todos los hilos
+            for t in self._threads:
+                t.join()
 
     def close(self):
         logging.info("action: shutdown | result: in_progress | resource: server")
@@ -59,7 +65,7 @@ class Server:
                     if not bets:
                         break
 
-                    agency_id = bets[0].agency  # todas las apuestas del batch son de la misma agencia
+                    agency_id = bets[0].agency
                     try:
                         store_bets(bets)
                         logging.info(
@@ -91,7 +97,6 @@ class Server:
                         f"action: send_winners | result: success | agency: {agency_id} | cantidad: {len(winners)}"
                     )
                     break
-
         except Exception as e:
             logging.error(f"action: handle_client | result: fail | error: {e}")
         finally:
@@ -114,5 +119,4 @@ class Server:
                 winners_by_agency.setdefault(int(bet.agency), []).append(bet.document)
 
         self._winners_by_agency = winners_by_agency
-
         logging.info(f"action: sorteo | result: success | winners={self._winners_by_agency}")
