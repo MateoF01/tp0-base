@@ -89,4 +89,6 @@ def send_winners(sock: socket.socket, winners: list[str]):
         msg += int_to_big_endian_bytes(len(data))
         msg += data
 
+    print("SEND WINNERS RAW:", msg)
+
     sock.sendall(msg)

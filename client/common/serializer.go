@@ -53,30 +53,3 @@ func DeserializeAck(data []byte) (isOk bool, count int, err error) {
 		return false, 0, nil
 	}
 }
-
-func DeserializeWinners(payload []byte) ([]string, error) {
-	if len(payload) < 4 {
-		return nil, nil
-	}
-
-	n := int(BigEndianBytesToInt(payload[0:4]))
-	winners := make([]string, 0, n)
-
-	offset := 4
-	for i := 0; i < n; i++ {
-		if offset+4 > len(payload) {
-			return nil, nil
-		}
-		l := int(BigEndianBytesToInt(payload[offset : offset+4]))
-		offset += 4
-
-		if offset+l > len(payload) {
-			return nil, nil
-		}
-		w := string(payload[offset : offset+l])
-		offset += l
-		winners = append(winners, w)
-	}
-
-	return winners, nil
-}

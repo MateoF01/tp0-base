@@ -3,6 +3,7 @@ package common
 import (
     "io"
     "net"
+    "fmt"
 )
 
 
@@ -86,12 +87,17 @@ func ReceiveWinners(conn net.Conn) ([]string, error) {
 		return nil, nil // tipo inesperado
 	}
 
+    fmt.Printf("RAW: %v\n", header)
+
 	// cantidad de ganadores
 	lenBuf := make([]byte, 4)
 	if _, err := io.ReadFull(conn, lenBuf); err != nil {
 		return nil, err
 	}
 	n := int(BigEndianBytesToInt(lenBuf))
+
+    fmt.Printf("N: %v\n", n)
+
 
 	winners := make([]string, 0, n)
 
@@ -111,6 +117,9 @@ func ReceiveWinners(conn net.Conn) ([]string, error) {
 
 		winners = append(winners, string(data))
 	}
+
+    fmt.Printf("WINNERS: %v\n", winners)
+
 
 	return winners, nil
 }
