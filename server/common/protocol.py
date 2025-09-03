@@ -1,13 +1,23 @@
-import struct
 import socket
-from .serializer import deserialize_bet
+from .serializer import (
+    deserialize_bet,
+    serialize_ack,
+    int_to_big_endian_bytes,
+    big_endian_bytes_to_int
+)
+
+MSG_LEN_BYTES = 4   # cantidad de bytes reservados para la longitud
+
 
 def recv_bet(sock: socket.socket):
-    raw_len = sock.recv(4)
+
+    raw_len = sock.recv(MSG_LEN_BYTES)
     if not raw_len:
         return None
-    msg_len = struct.unpack(">I", raw_len)[0]
 
+    msg_len = big_endian_bytes_to_int(raw_len)
+
+    # Acumulo hasta leer todo el mensaje
     data = b""
     while len(data) < msg_len:
         packet = sock.recv(msg_len - len(data))
@@ -17,7 +27,7 @@ def recv_bet(sock: socket.socket):
 
     return deserialize_bet(data)
 
-def send_ack(sock, bet):
-    payload = f"ACK".encode("utf-8")
-    length = struct.pack(">I", len(payload))
+def send_ack(sock: socket.socket):
+    payload = serialize_ack()
+    length = int_to_big_endian_bytes(len(payload))
     sock.sendall(length + payload)

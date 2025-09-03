@@ -65,7 +65,7 @@ class Server:
             logging.info(f"action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}")
 
             # Devuelvo ack
-            send_ack(client_sock, bet)
+            send_ack(client_sock)
 
         except Exception as e:
             logging.error(f"action: handle_client | result: fail | error: {e}")
