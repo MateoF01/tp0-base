@@ -124,13 +124,34 @@ El framing general es
 
 [1 byte tipo] [payload específico según el tipo]
 
-Luego para BET_BATCH en especifico quedaría
+| Código | Constante     | Descripción                             |
+| ------ | ------------- | --------------------------------------- |
+| `1`    | `BET_BATCH`   | Batch de apuestas                       |
+| `2`    | `END`         | Señal de fin de apuestas de una agencia |
+| `3`    | `GET_WINNERS` | Solicitud de ganadores                  |
+| `4`    | `WINNERS`     | Respuesta con lista de ganadores        |
+| `5`    | `ACK`         | Confirmación de recepción               |
+| `6`    | `ERR`         | Error en el procesamiento               |
+
+Ejemplos de mensajes:
+
+BET_BATCH
 
 [01] [4 bytes cantidad N] 
       N veces: [4 bytes longitud][payload apuesta]
 
+ACK
 
+[05] [4 bytes longitud] [payload]
 
+END
+
+[02] [4 bytes longitud] [agency_id]
+
+WINNERS
+
+[04] [4 bytes cantidad N] 
+     N veces: [4 bytes longitud][string ganador]
 
 Ademas se debieron realizar otros cambios, para poder ordenar el flujo. En primer lugar, al obtener una conexion, el cliente envia en batch todas las apuestas, luego envia el mensaje de END indicando que ya no hay apuestas que enviar y cierra la conexion, para darle lugar a otro cliente. Luego de esto el cliente numero 1, vuelve a conectarse para solicitar los ganadores. Si los ganadores aun no estan disponibles, se desconecta e intenta luego de nuevo. Realizando de esta forma un polling con reintentos. Quizás no es lo mas elegante, pero al no tener la posibilidad de manejar la aceptacion de conexiones y la recibida de mensajes de manera concurrente, si los clientes no cierran la conexion, un cliente monopoliza al server. Y hacerlo funcionar de otra forma se vuelve demasiado engorroso. En el ejercicio 8 se realizaran mejoras en este aspecto.
 
