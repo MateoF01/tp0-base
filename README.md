@@ -159,12 +159,23 @@ También se actualizó el generador-compose.py para que el servidor sepa entre s
 
 ## Ejercicio 8
 
-Este ejercicio simplifica mucho el comportamiento, ya que al tener un hilo para aceptar las conexiones, y luego lanzar un hilo por cada cliente nuevo que se conecte. De esta forma se podrán procesar los mensajes de forma concurrente. Para sincrionzar a los clientes que deben esperar a que todos terminen para obtener los ganadores, utilicé una barrera, ya que creo que es el caso perfecto para utilizar este mecanismo de sincrinizacion, en el cual solo se puede avanzar cuando todos estan en el mismo punto. Una vez llegado todos los clientes a la barrera, se realiza el calculo de computo, y a partir de ese momento, todos los clientes querrán acceder al recurso compartido donde se guardan los ganadores. En este punto simplemente es una operación de lectura entonces no requiero lockear el acceso. 
+Este ejercicio simplifica mucho el comportamiento del sistema, ya que ahora el servidor tiene un hilo dedicado para aceptar conexiones y luego lanza un hilo por cada cliente nuevo que se conecta. De esta forma, los mensajes pueden procesarse de manera concurrente.
 
-Solo se deberá hacer el lock al momento de hacer el computo de ganadores, para que no se genere una race condition. 
+Inicialmente utilicé una barrera (threading.Barrier) para sincronizar a los clientes y que todos esperen hasta que cada uno haya terminado de enviar sus apuestas. Una vez alcanzado ese punto, se realizaba el cómputo de ganadores, y luego cada cliente podía acceder al recurso compartido.
 
-Además con esta nueva implementación el cliente no necesita cerrar su conexion y volver a conectarse realizando un poll. Ahora el servdor puede manejar las conexiones activas por separado y responder inmediatamente despues de realizar el calculo. Incluso no necesitamos mas la peticion de GET WINNERS, porque podemos sincronizar el flujo perfectamente para que despues de recibir todos los ENDs el servidor responda con los ganadores.
+Sin embargo, encontré una limitación: si un cliente ya había mandado todas sus apuestas y se caía mientras esperaba en la barrera, esta nunca se liberaba, aunque en realidad ya se contaba con todos los datos necesarios para realizar el sorteo. Por eso reemplacé la barrera por un contador de clientes finalizados. Cada vez que un cliente envía su mensaje END, incrementa este contador. Cuando el contador alcanza el número esperado de clientes, se dispara el sorteo.
 
+El contador se proteje mediante un (threading.Condition). Cuando un hilo llega a la seccion donde se aumenta el contador toma el lock interno del condition, aumenta 1 en el contador y revisa si el contador es igual a la cantidad de hilos esperada. Si no lo es se queda en un estado de espera y libera el lock. Asi sucesivamente van llegando los hilos hasta que por fin uno cumple con la condiccion y realiza el computo de los ganadores. Inmediatamente despues, ese hilo notifica a todos los demas, para que puedan avanzar y enviar la respuesta. 
+
+Con esta nueva implementación, los clientes ya no necesitan cerrar su conexión y reconectarse para consultar los ganadores mediante polling. El servidor puede manejar múltiples conexiones activas en paralelo y responder inmediatamente después de computar el sorteo. Incluso, ya no es necesaria la petición explícita de GET WINNERS: después de recibir todos los END, el servidor responde directamente con los ganadores a cada cliente.
+
+Finalmente aunque CPython tiene el Global Interpreter Lock (GIL), que limita la ejecución concurrente de bytecode, en este caso no es un problema.
+
+Las operaciones principales del servidor son I/O bound (esperar conexiones de socket, leer mensajes, escribir en archivos), y durante esas operaciones el intérprete libera el GIL. Esto permite que múltiples hilos avancen en paralelo de manera eficiente.
+
+En resumen:
+- Cálculos pesados en CPU no ganarían paralelismo real con threads en CPython.
+- Pero para este caso, donde el trabajo es mayormente I/O, threading es perfectamente válido y mucho más simple que manejar procesos o asincronía manualmente.
 
 # TP0: Docker + Comunicaciones + Concurrencia
 
