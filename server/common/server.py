@@ -79,7 +79,7 @@ class Server:
                             # si todavía no computamos, computamos
                             self._compute_winners()
 
-                        winners = self._winners_by_agency.get(agency_id, [])
+                        winners = self._winners_by_agency.get(str(agency_id), [])
                         send_winners(client_sock, winners)
                         logging.info(
                             f"action: get_winners | result: success | agency: {agency_id}"
