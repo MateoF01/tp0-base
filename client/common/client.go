@@ -4,6 +4,8 @@ import (
 	"net"
 	"time"
 	"github.com/op/go-logging"
+	"os"
+    "encoding/csv"
 )
 
 var log = logging.MustGetLogger("log")
@@ -75,7 +77,7 @@ func (c *Client) StartClientLoop() {
 
 	for {
 		// Leer siguiente batch
-		batch, err := common.LoadBetsBatch(reader, c.config.ID, c.config.BatchMaxAmount)
+		batch, err := LoadBetsBatch(reader, c.config.ID, c.config.BatchMaxAmount)
 		if err != nil {
 			log.Errorf("action: load_bets | result: fail | error: %v", err)
 			return
@@ -85,13 +87,13 @@ func (c *Client) StartClientLoop() {
 		}
 
 		// Enviar batch
-		if err := common.SendBets(c.conn, batch); err != nil {
+		if err := SendBets(c.conn, batch); err != nil {
 			log.Errorf("action: send_bets | result: fail | error: %v", err)
 			return
 		}
 
 		// Esperar ACK
-		isOk, betsCount, err := common.ReceiveAck(c.conn)
+		isOk, betsCount, err := ReceiveAck(c.conn)
 		if err != nil || !isOk {
 			log.Errorf("action: receive_ack | result: fail | error: %v", err)
 			return

@@ -4,7 +4,6 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
-	"os"
 )
 
 // LoadBetsBatch lee hasta batchSize apuestas desde el CSV
