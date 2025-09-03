@@ -1,7 +1,7 @@
 package common
 
 type Bet struct {
-    Agency     int
+    Agency     string
     FirstName  string
     LastName   string
     Document   string

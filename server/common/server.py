@@ -1,12 +1,11 @@
 import socket
 import logging
-import threading
 from common.protocol import (
     recv_bets, send_ack, send_error, send_winners,
     recv_message_type, recv_payload, recv_agency_id
 )
 from common.utils import store_bets, load_bets, has_won
-from .message_types import BET_BATCH, END, WINNERS
+from .message_types import HELLO, BET_BATCH, END, WINNERS, GET_WINNERS
 
 
 class Server:
@@ -15,27 +14,19 @@ class Server:
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
-
         self._expected_agencies = expected
+
         self._running = True
 
-        # sincronización
-        self.barrier = threading.Barrier(expected)
-        self._winners_by_agency = {}
-        self._compute_lock = threading.Lock()  # para no computar dos veces
+        self._agencies_finished = 0    # agency_id -> bool
+        self._winners_by_agency = {}    # agency_id -> [dni ganadores]
 
     def run(self):
         while self._running:
             try:
                 client_sock = self.__accept_new_connection()
-                # un hilo por cliente
-                t = threading.Thread(
-                    target=self.__handle_client_connection,
-                    args=(client_sock,),
-                    daemon=True
-                )
-                t.start()
-            except OSError:
+                self.__handle_client_connection(client_sock)
+            except OSError as e:
                 if not self._running:
                     break
                 raise
@@ -54,39 +45,46 @@ class Server:
                     break
 
                 if msg_type == BET_BATCH:
-                    payload = recv_payload(client_sock)
-                    agency_id, bets = recv_bets(payload)
+                    bets = recv_bets(client_sock)
                     if not bets:
                         break
+
+                    agency_id = bets[0].agency  # todas las apuestas del batch son de la misma agencia
                     try:
                         store_bets(bets)
                         logging.info(
                             f"action: apuesta_recibida | result: success | cantidad: {len(bets)} | agency: {agency_id}"
                         )
-                        send_ack(client_sock, f"OK|{len(bets)}")
+                        send_ack(client_sock, len(bets))
                     except Exception as e:
                         logging.error(
                             f"action: apuesta_recibida | result: fail | cantidad: {len(bets)} | error: {e}"
                         )
-                        send_error(client_sock, f"ERR|{len(bets)}")
+                        send_error(client_sock, len(bets))
 
                 elif msg_type == END:
-                    payload = recv_payload(client_sock)
-                    agency_id = recv_agency_id(payload)
+                    self._agencies_finished += 1
+                    agency_id = recv_agency_id(client_sock)
                     logging.info(f"action: end | result: success | agency: {agency_id}")
+                    break
 
-                    # sincronizamos con la barrera
-                    self.barrier.wait()
+                elif msg_type == GET_WINNERS:
+                    agency_id = recv_agency_id(client_sock)
+                    logging.info(
+                        f"action: get_winners | result: in_progress | agency: {agency_id}"
+                    )
 
-                    # un solo hilo hace el cómputo
-                    with self._compute_lock:
-                        if not self._winners_by_agency:
+                    if self._agencies_finished == self._expected_agencies:
+                        if len(self._winners_by_agency) == 0:
+                            # si todavía no computamos, computamos
                             self._compute_winners()
 
-                    # devolvemos los ganadores de esta agencia
-                    winners = self._winners_by_agency.get(agency_id, [])
-                    send_winners(client_sock, winners, WINNERS)
-                    logging.info(f"action: winners_sent | result: success | agency: {agency_id}")
+                        winners = self._winners_by_agency.get(int(agency_id), [])
+
+                        send_winners(client_sock, winners)
+                        logging.info(
+                            f"action: get_winners | result: success | agency: {agency_id}"
+                        )
                     break
 
         except Exception as e:
@@ -97,6 +95,7 @@ class Server:
             except Exception:
                 pass
 
+
     def __accept_new_connection(self):
         logging.info("action: accept_connections | result: in_progress")
         c, addr = self._server_socket.accept()
@@ -105,8 +104,16 @@ class Server:
 
     def _compute_winners(self):
         winners_by_agency = {}
+
         for bet in load_bets():
             if has_won(bet):
                 winners_by_agency.setdefault(bet.agency, []).append(bet.document)
+
         self._winners_by_agency = winners_by_agency
-        logging.info(f"action: sorteo | result: success | winners_by_agency: {winners_by_agency}")
+
+        logging.info(f"action: sorteo | result: success")
+        logging.info(f"winners by agency {self._winners_by_agency}")
+
+    
+
+  
