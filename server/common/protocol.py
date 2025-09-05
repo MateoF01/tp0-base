@@ -15,34 +15,37 @@ from .message_types import ACK, ERR, WINNERS
 MSG_TYPE_BYTES = 1
 MSG_LEN_BYTES = 4
 
-def recv_message_type(sock: socket.socket) -> int:
-    raw_type = sock.recv(MSG_TYPE_BYTES)
+def recv_all(sock: socket.socket, n: int):
+    data = b""
+    while len(data) < n:
+        packet = sock.recv(n - len(data))
+        if not packet:  # conexión cerrada
+            return None
+        data += packet
+    return data
+
+
+def recv_message_type(sock: socket.socket):
+    raw_type = recv_all(sock, MSG_TYPE_BYTES)
     if not raw_type:
         return None
     return raw_type[0]
 
 
-def recv_payload(sock: socket.socket) -> bytes:
+def recv_payload(sock: socket.socket):
     # Leo longitud del payload
-    raw_len = sock.recv(MSG_LEN_BYTES)
+    raw_len = recv_all(sock, MSG_LEN_BYTES)
     if not raw_len:
         return None
     length = big_endian_bytes_to_int(raw_len)
 
     # Leo payload completo
-    data = b""
-    while len(data) < length:
-        packet = sock.recv(length - len(data))
-        if not packet:
-            return None
-        data += packet
-
-    return data
+    return recv_all(sock, length)
 
 
 def recv_bets(sock: socket.socket):
     # cantidad de apuestas
-    raw_n = sock.recv(MSG_LEN_BYTES)
+    raw_n = recv_all(sock, MSG_LEN_BYTES)
     if not raw_n:
         return []
     n = big_endian_bytes_to_int(raw_n)
@@ -56,6 +59,7 @@ def recv_bets(sock: socket.socket):
         bets.append(bet)
 
     return bets
+
 
 
 def recv_agency_id(sock: socket.socket) -> str:

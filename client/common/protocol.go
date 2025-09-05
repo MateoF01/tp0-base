@@ -1,19 +1,58 @@
 package common
 
 import (
-    "io"
-    "net"
+	"net"
 )
 
+const (
+	MSG_TYPE_BYTES = 1
+	MSG_LEN_BYTES  = 4
+)
+
+// WriteFull asegura que se escriban todos los bytes o devuelva error
+func WriteFull(conn net.Conn, data []byte) error {
+	total := 0
+	for total < len(data) {
+		n, err := conn.Write(data[total:])
+		if err != nil {
+			return err
+		}
+		total += n
+	}
+	return nil
+}
+
+// ReadFullN lee exactamente n bytes o devuelve error
+func ReadFullN(conn net.Conn, n int) ([]byte, error) {
+	buf := make([]byte, n)
+	total := 0
+	for total < n {
+		read, err := conn.Read(buf[total:])
+		if err != nil {
+			return nil, err
+		}
+		if read == 0 {
+			return nil, &errorString{"unexpected message type"}
+		}
+		total += read
+	}
+	return buf, nil
+}
+
+// errorString es un tipo simple que implementa error
+type errorString struct{ s string }
+func (e *errorString) Error() string { return e.s }
 
 func SendMessage(conn net.Conn, msgType byte, payload []byte) error {
 	header := []byte{msgType}
 	header = append(header, IntToBigEndianBytes(uint32(len(payload)))...)
-	if _, err := conn.Write(header); err != nil {
+
+	if err := WriteFull(conn, header); err != nil {
 		return err
 	}
+
 	if len(payload) > 0 {
-		if _, err := conn.Write(payload); err != nil {
+		if err := WriteFull(conn, payload); err != nil {
 			return err
 		}
 	}
@@ -23,24 +62,17 @@ func SendMessage(conn net.Conn, msgType byte, payload []byte) error {
 func SendBets(conn net.Conn, bets []Bet) error {
 	var msg []byte
 
-	// tipo de mensaje
 	msg = append(msg, MsgBetBatch)
-
-	// cantidad de apuestas
 	msg = append(msg, IntToBigEndianBytes(uint32(len(bets)))...)
 
-	// cada apuesta
 	for _, b := range bets {
 		data := SerializeBet(b)
 		msg = append(msg, IntToBigEndianBytes(uint32(len(data)))...)
 		msg = append(msg, data...)
 	}
 
-	// enviar todo junto
-	_, err := conn.Write(msg)
-	return err
+	return WriteFull(conn, msg)
 }
-
 
 func SendEnd(conn net.Conn, agencyID string) error {
 	return SendMessage(conn, MsgEnd, []byte(agencyID))
@@ -51,15 +83,15 @@ func SendGetWinners(conn net.Conn, agencyID string) error {
 }
 
 func ReceiveMessage(conn net.Conn) (byte, []byte, error) {
-	header := make([]byte, 5)
-	if _, err := io.ReadFull(conn, header); err != nil {
+	header, err := ReadFullN(conn, MSG_TYPE_BYTES+MSG_LEN_BYTES)
+	if err != nil {
 		return 0, nil, err
 	}
 	msgType := header[0]
-	length := BigEndianBytesToInt(header[1:5])
+	length := int(BigEndianBytesToInt(header[MSG_TYPE_BYTES : MSG_TYPE_BYTES+MSG_LEN_BYTES]))
 
-	payload := make([]byte, length)
-	if _, err := io.ReadFull(conn, payload); err != nil {
+	payload, err := ReadFullN(conn, length)
+	if err != nil {
 		return 0, nil, err
 	}
 	return msgType, payload, nil
@@ -77,41 +109,35 @@ func ReceiveAck(conn net.Conn) (bool, int, error) {
 }
 
 func ReceiveWinners(conn net.Conn) ([]string, error) {
-	// leer tipo de mensaje
-	header := make([]byte, 1)
-	if _, err := io.ReadFull(conn, header); err != nil {
+	header, err := ReadFullN(conn, MSG_TYPE_BYTES)
+	if err != nil {
 		return nil, err
 	}
 	if header[0] != MsgWinners {
-		return nil, nil // tipo inesperado
+		return nil, nil
 	}
 
-	// cantidad de ganadores
-	lenBuf := make([]byte, 4)
-	if _, err := io.ReadFull(conn, lenBuf); err != nil {
+	lenBuf, err := ReadFullN(conn, MSG_LEN_BYTES)
+	if err != nil {
 		return nil, err
 	}
 	n := int(BigEndianBytesToInt(lenBuf))
 
 	winners := make([]string, 0, n)
 
-	// cada ganador
 	for i := 0; i < n; i++ {
-		// longitud del string
-		if _, err := io.ReadFull(conn, lenBuf); err != nil {
+		lenBuf, err = ReadFullN(conn, MSG_LEN_BYTES)
+		if err != nil {
 			return nil, err
 		}
 		l := int(BigEndianBytesToInt(lenBuf))
 
-		// leer string
-		data := make([]byte, l)
-		if _, err := io.ReadFull(conn, data); err != nil {
+		data, err := ReadFullN(conn, l)
+		if err != nil {
 			return nil, err
 		}
-
 		winners = append(winners, string(data))
 	}
-
 
 	return winners, nil
 }

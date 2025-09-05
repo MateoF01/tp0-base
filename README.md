@@ -177,6 +177,18 @@ En resumen:
 - Cálculos pesados en CPU no ganarían paralelismo real con threads en CPython.
 - Pero para este caso, donde el trabajo es mayormente I/O, threading es perfectamente válido y mucho más simple que manejar procesos o asincronía manualmente.
 
+---
+
+## Correcciones
+
+Se me pidió corregir posibles casos de short read y short write.
+
+En primer lugar, cabe comentar que utilizando la función sendall del módulo socket en Python no puedo tener short writes, ya que internamente realiza un bucle llamando a send hasta transmitir todos los bytes o lanzar una excepción si no es posible. En cambio, send(data) sí puede devolver un número menor a len(data) si solo pudo mandar parte del buffer. Por lo tanto, con sendall() este problema queda solucionado.
+
+En cuanto a mi implementación en Go, tenía el problema de no estar manejando correctamente la posibilidad de un short write, ya que la función conn.Write() no asegura el envío total de bytes. Para resolverlo, implementé una función auxiliar que encapsula este comportamiento y repite llamadas a Write hasta que la cantidad total de bytes enviados sea igual al len(data).
+
+Respecto a los short reads, en el servidor me quedaba un caso borde donde podía no leer todos los bytes del header que indicaba el tamaño del mensaje. Para solucionarlo, implementé una función auxiliar que se asegura de leer en un bucle todos los bytes hasta alcanzar el tamaño esperado. De manera análoga, realicé el mismo ajuste en el cliente, encapsulando la lógica de lectura en una función que garantiza obtener exactamente el número de bytes requerido.
+
 # TP0: Docker + Comunicaciones + Concurrencia
 
 En el presente repositorio se provee un esqueleto básico de cliente/servidor, en donde todas las dependencias del mismo se encuentran encapsuladas en containers. Los alumnos deberán resolver una guía de ejercicios incrementales, teniendo en cuenta las condiciones de entrega descritas al final de este enunciado.
